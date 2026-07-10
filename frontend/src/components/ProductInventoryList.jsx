@@ -106,14 +106,33 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to permanently decommission this hardware asset? This will delete the product record.')) {
+  // Decommission modal state
+  const [decomProduct, setDecomProduct] = useState(null);
+
+  const executeDecom = async (id, option) => {
+    const confirmMessage = option === 'keepHistory' 
+      ? `Are you sure you want to decommission "${decomProduct?.name || ''}" and hide it from active listings, while keeping its history on the dashboard?`
+      : `WARNING: This will permanently delete "${decomProduct?.name || ''}" and ALL of its transactional, sales, and inventory history. This operation is IRREVERSIBLE. Are you sure you want to proceed?`;
+      
+    if (!window.confirm(confirmMessage)) {
       return;
     }
+
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Decommissioning failed');
+      const res = await fetch(`/api/products/${id}?option=${option}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Decommissioning failed');
+      }
+      
+      const successMessage = option === 'keepHistory'
+        ? `Product "${decomProduct?.name || ''}" has been decommissioned successfully. History kept on dashboard.`
+        : `Product "${decomProduct?.name || ''}" and all its transactional/sales history have been permanently deleted.`;
+      
+      alert(successMessage);
+      
       setProducts(products.filter(p => p.id !== id));
+      setDecomProduct(null);
     } catch (err) {
       alert(`Decommissioning error: ${err.message}`);
     }
@@ -208,6 +227,7 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
       });
 
       if (response.ok) {
+        alert('Hardware asset updated successfully!');
         setEditMessage({ type: 'success', text: 'Hardware asset updated successfully!' });
         await fetchData();
         // Keep modal open, but clear messages after a short delay
@@ -255,6 +275,7 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
       const result = await response.json();
 
       if (response.ok) {
+        alert(`Stock movement logged successfully!\n\nLogged: ${result.message}`);
         setMovementMessage({ type: 'success', text: `Logged: ${result.message}` });
         setQuickMovement(prev => ({ ...prev, quantity: 1 }));
         setQuickNumBoxes(1);
@@ -406,13 +427,107 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
                   {isSuperAdmin && (
                     <td style={{ textAlign: 'right' }}>
                       <button className="btn-edit" onClick={() => handleEditClick(p)}>Manage</button>
-                      <button className="btn-delete" onClick={() => handleDelete(p.id)}>Decom</button>
+                      <button className="btn-delete" onClick={() => setDecomProduct(p)}>Decom</button>
                     </td>
                   )}
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Decommission Options Modal Overlay */}
+      {decomProduct && (
+        <div className="modal-backdrop">
+          <div className="modal-container" style={{ maxWidth: '600px' }}>
+            <div className="modal-header" style={{ borderTop: '4px solid #ef4444' }}>
+              <h3>Decommission Hardware Product</h3>
+              <button className="modal-close-btn" onClick={() => setDecomProduct(null)}>&times;</button>
+            </div>
+            <div style={{ padding: '24px', backgroundColor: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', color: '#dc2626', gap: '8px' }}>
+                <span style={{ fontSize: '24px' }}>🚨</span>
+                <strong style={{ fontSize: '16px' }}>Decommissioning: "{decomProduct.name}" ({decomProduct.sku})</strong>
+              </div>
+              
+              <p style={{ color: '#64748b', fontSize: '13px', lineHeight: '1.5', marginBottom: '24px' }}>
+                Choose how you want to handle the history of this product. Decommissioning cannot be undone.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                {/* Option A: Soft Delete */}
+                <div 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    backgroundColor: '#f8fafc',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                  onClick={() => executeDecom(decomProduct.id, 'keepHistory')}
+                >
+                  <div style={{ marginRight: '12px', marginTop: '2px' }}>
+                    <span style={{ display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid #3b82f6', backgroundColor: '#ffffff' }}></span>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#0f172a', fontSize: '14px', display: 'block', marginBottom: '4px' }}>
+                      Option A: Decommission but Keep History
+                    </strong>
+                    <span style={{ color: '#475569', fontSize: '12px', lineHeight: '1.4', display: 'block' }}>
+                      Removes the product from all active catalog listings, but retains its transactional/sales history. 
+                      Past stock movements and sales data remain visible on the dashboard analytics.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Option B: Hard Delete */}
+                <div 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    padding: '16px',
+                    border: '1px solid #fecaca',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    backgroundColor: '#fff5f5',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#fecaca'; e.currentTarget.style.backgroundColor = '#fff5f5'; }}
+                  onClick={() => executeDecom(decomProduct.id, 'deleteHistory')}
+                >
+                  <div style={{ marginRight: '12px', marginTop: '2px' }}>
+                    <span style={{ display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid #ef4444', backgroundColor: '#ffffff' }}></span>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#b91c1c', fontSize: '14px', display: 'block', marginBottom: '4px' }}>
+                      Option B: Permanent Wipe (Erase Entire History)
+                    </strong>
+                    <span style={{ color: '#991b1b', fontSize: '12px', lineHeight: '1.4', display: 'block' }}>
+                      Permanently deletes the product, its inventory, and all associated transaction logs. 
+                      This cleans the dashboard of all sales/stock records for this product.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-footer-close">
+              <button 
+                className="btn-edit" 
+                style={{ backgroundColor: '#94a3b8', color: '#ffffff', marginRight: '8px', border: 'none' }}
+                onClick={() => setDecomProduct(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

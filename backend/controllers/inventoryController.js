@@ -46,7 +46,7 @@ const handleStockMovement = async (req, res, db) => {
     // Dynamically check/create the product if typed by the user for competitor sourcing
     if (isCompetitorSourced && productName) {
       const [prodRows] = await connection.execute(
-        "SELECT id FROM products WHERE name = ?",
+        "SELECT id FROM products WHERE name = ? AND is_decommissioned = 0",
         [productName.trim()]
       );
       if (prodRows.length > 0) {
@@ -319,7 +319,7 @@ const bulkStockMovements = async (req, res, db) => {
 
       // Find product by Name
       const [prodRows] = await connection.execute(
-        'SELECT id FROM products WHERE name = ?',
+        'SELECT id FROM products WHERE name = ? AND is_decommissioned = 0',
         [productName.trim()]
       );
 

@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import logo from '../assets/Logo.png';
 
 /**
- * Login Component
- * Premium industrial-hardware aesthetic login portal.
- * Features glassmorphic cards, safety amber accents, and clean status messages.
+ * ResetDefaultAdminForm Component
+ * Premium industrial-themed form forcing the superadmin to change default credentials.
  */
-const Login = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+const ResetDefaultAdminForm = ({ onResetSuccess, onCancel }) => {
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,82 +16,111 @@ const Login = ({ onLoginSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (!newUsername.trim()) {
+      setError('Username is required.');
+      return;
+    }
+
+    if (newUsername.trim().toLowerCase() === 'superadmin') {
+      setError('New username cannot be the default "superadmin".');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword === 'admin1234') {
+      setError('New password cannot be the default "admin1234".');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
+      const token = localStorage.getItem('hims_token');
+      const res = await fetch('/api/auth/reset-default-admin', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({
+          newUsername: newUsername.trim(),
+          newPassword
+        })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Invalid credentials');
+        throw new Error(data.error || 'Failed to update credentials.');
       }
 
-      // Store in localStorage
+      alert('Credentials updated successfully! Access granted to HIMS.');
+      
+      // Update local storage
       localStorage.setItem('hims_token', data.token);
       localStorage.setItem('hims_user', JSON.stringify(data.user));
-      localStorage.setItem('hims_requires_reset', data.requiresReset ? 'true' : 'false');
+      localStorage.setItem('hims_requires_reset', 'false');
 
-      // Trigger success hook
-      onLoginSuccess(data.token, data.user, data.requiresReset);
+      // Trigger success callback
+      onResetSuccess(data.token, data.user);
     } catch (err) {
-      console.error('Authentication error:', err.message);
-      setError(err.message || 'Server error. Please verify database connection.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-portal-wrapper">
-      <div className="login-panel-container">
+    <div className="reset-portal-wrapper">
+      <div className="reset-panel-container">
         
         {/* Brand Banner */}
-        <div className="login-brand-header">
-          <img src={logo} alt="HIMS Logo" className="login-logo-img" />
+        <div className="reset-brand-header">
+          <img src={logo} alt="HIMS Logo" className="reset-logo-img" />
           <div className="brand-titles">
-            <h1>HIMS CONTROL ROOM</h1>
-            <p>ASSET LIFECYCLE & LEDGER GATEWAY</p>
+            <h1>HIMS SECURITY OVERRIDE</h1>
+            <p>SETUP CUSTOM SUPERADMIN CREDENTIALS</p>
           </div>
         </div>
 
-        {/* Input Card */}
-        <div className="login-card-body">
-          <div className="security-banner">
-            <span className="secure-badge">🔒 SECURED PORTAL</span>
-            <p>Access is restricted to authorized personnel only. Activities are audited.</p>
+        {/* Form Body */}
+        <div className="reset-card-body">
+          <div className="security-banner alert-warning">
+            <span className="secure-badge">⚠️ MANDATORY RESET</span>
+            <p>You are using default system credentials. For security audit compliance, you must establish a custom username and passcode before proceeding.</p>
           </div>
 
-          {error && <div className="login-error-banner">⚠️ {error}</div>}
+          {error && <div className="reset-error-banner">⚠️ {error}</div>}
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="login-form-group">
-              <label htmlFor="login-username">System Username</label>
+          <form onSubmit={handleSubmit} className="reset-form">
+            <div className="reset-form-group">
+              <label>New Custom Username</label>
               <input
-                id="login-username"
                 type="text"
-                placeholder="e.g. superadmin"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
+                placeholder="e.g. administrator_sarfo"
+                value={newUsername}
+                onChange={e => setNewUsername(e.target.value)}
                 required
                 disabled={loading}
               />
             </div>
 
-            <div className="login-form-group">
-              <label htmlFor="login-password">Access Passcode</label>
+            <div className="reset-form-group">
+              <label>New Access Passcode</label>
               <div className="password-input-wrapper" style={{ position: 'relative' }}>
                 <input
-                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
                   required
                   disabled={loading}
                   style={{ paddingRight: '40px' }}
@@ -117,32 +146,49 @@ const Login = ({ onLoginSuccess }) => {
                     outline: 'none',
                     transition: 'color 0.2s, opacity 0.2s'
                   }}
-                  title={showPassword ? 'Hide passcode' : 'Show passcode'}
                 >
                   👁️
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="login-submit-btn" disabled={loading}>
-              {loading ? 'Authenticating Gateway...' : 'Unlock Control Room'}
-            </button>
+            <div className="reset-form-group">
+              <label>Confirm Access Passcode</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Repeat passcode"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '12px', marginTop: '10px' }}>
+              <button 
+                type="button" 
+                className="reset-cancel-btn" 
+                onClick={onCancel}
+                disabled={loading}
+              >
+                Cancel / Exit
+              </button>
+              <button type="submit" className="reset-submit-btn" disabled={loading}>
+                {loading ? 'Saving Credentials...' : 'Save & Unlock HIMS'}
+              </button>
+            </div>
           </form>
         </div>
 
         {/* Console Footer */}
-        <div className="login-console-footer">
-          <div className="footer-status-pill">
-            <span className="pulse-indicator"></span>
-            <span>SYSTEM AUDIT ON</span>
-          </div>
-          <span>REAL PEEKRAH CO. LTD &bull; v2.0.0</span>
+        <div className="reset-console-footer">
+          <span>REAL PEEKRAH CO. LTD &bull; SECURITY GATEWAY</span>
         </div>
 
       </div>
 
       <style jsx>{`
-        .login-portal-wrapper {
+        .reset-portal-wrapper {
           position: fixed;
           top: 0;
           left: 0;
@@ -150,8 +196,8 @@ const Login = ({ onLoginSuccess }) => {
           bottom: 0;
           background-color: #0b0f19;
           background-image: 
-            radial-gradient(at 50% 0%, rgba(249, 115, 22, 0.15) 0px, transparent 50%),
-            radial-gradient(at 0% 100%, rgba(2, 132, 199, 0.1) 0px, transparent 50%);
+            radial-gradient(at 50% 0%, rgba(220, 38, 38, 0.12) 0px, transparent 50%),
+            radial-gradient(at 0% 100%, rgba(15, 23, 42, 0.5) 0px, transparent 50%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -160,12 +206,12 @@ const Login = ({ onLoginSuccess }) => {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        .login-panel-container {
+        .reset-panel-container {
           background-color: rgba(30, 41, 59, 0.45);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-top: 4px solid #f97316; /* safety orange */
+          border-top: 4px solid #ef4444; /* danger red */
           border-radius: 8px;
           width: 100%;
           max-width: 440px;
@@ -181,8 +227,7 @@ const Login = ({ onLoginSuccess }) => {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Header section */
-        .login-brand-header {
+        .reset-brand-header {
           background-color: rgba(15, 23, 42, 0.8);
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           padding: 20px 24px;
@@ -191,7 +236,7 @@ const Login = ({ onLoginSuccess }) => {
           gap: 16px;
         }
 
-        .login-logo-img {
+        .reset-logo-img {
           width: 44px;
           height: 44px;
           object-fit: contain;
@@ -214,8 +259,7 @@ const Login = ({ onLoginSuccess }) => {
           letter-spacing: 0.08em;
         }
 
-        /* Body card */
-        .login-card-body {
+        .reset-card-body {
           padding: 28px 24px;
           display: flex;
           flex-direction: column;
@@ -223,8 +267,8 @@ const Login = ({ onLoginSuccess }) => {
         }
 
         .security-banner {
-          background-color: rgba(2, 132, 199, 0.06);
-          border: 1px dashed rgba(2, 132, 199, 0.25);
+          background-color: rgba(239, 68, 68, 0.04);
+          border: 1px dashed rgba(239, 68, 68, 0.25);
           padding: 10px 12px;
           border-radius: 4px;
         }
@@ -233,7 +277,7 @@ const Login = ({ onLoginSuccess }) => {
           display: inline-block;
           font-size: 9px;
           font-weight: 900;
-          color: #38bdf8;
+          color: #ef4444;
           letter-spacing: 0.04em;
           margin-bottom: 4px;
         }
@@ -245,7 +289,7 @@ const Login = ({ onLoginSuccess }) => {
           line-height: 1.4;
         }
 
-        .login-error-banner {
+        .reset-error-banner {
           background-color: rgba(239, 68, 68, 0.08);
           border: 1px solid rgba(239, 68, 68, 0.3);
           color: #f87171;
@@ -255,19 +299,19 @@ const Login = ({ onLoginSuccess }) => {
           font-weight: 700;
         }
 
-        .login-form {
+        .reset-form {
           display: flex;
           flex-direction: column;
           gap: 16px;
         }
 
-        .login-form-group {
+        .reset-form-group {
           display: flex;
           flex-direction: column;
           gap: 6px;
         }
 
-        .login-form-group label {
+        .reset-form-group label {
           font-size: 10px;
           font-weight: 800;
           color: #94a3b8;
@@ -275,7 +319,7 @@ const Login = ({ onLoginSuccess }) => {
           letter-spacing: 0.05em;
         }
 
-        .login-form-group input {
+        .reset-form-group input {
           background-color: rgba(15, 23, 42, 0.6) !important;
           border: 1px solid rgba(255, 255, 255, 0.1) !important;
           color: #ffffff !important;
@@ -287,15 +331,14 @@ const Login = ({ onLoginSuccess }) => {
           box-sizing: border-box !important;
         }
 
-        .login-form-group input:focus {
-          border-color: #f97316 !important;
+        .reset-form-group input:focus {
+          border-color: #ef4444 !important;
           outline: none !important;
-          box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15) !important;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
         }
 
-        .login-submit-btn {
-          margin-top: 8px;
-          background-color: #f97316 !important;
+        .reset-submit-btn {
+          background-color: #ef4444 !important;
           color: #ffffff !important;
           border: none !important;
           padding: 12px !important;
@@ -308,50 +351,45 @@ const Login = ({ onLoginSuccess }) => {
           transition: background-color 0.15s !important;
         }
 
-        .login-submit-btn:hover:not(:disabled) {
-          background-color: #ea580c !important;
+        .reset-submit-btn:hover:not(:disabled) {
+          background-color: #dc2626 !important;
         }
 
-        .login-submit-btn:disabled {
+        .reset-submit-btn:disabled {
           background-color: rgba(255, 255, 255, 0.1) !important;
           color: #64748b !important;
           cursor: not-allowed;
         }
 
-        /* Console Footer */
-        .login-console-footer {
+        .reset-cancel-btn {
+          background-color: transparent !important;
+          color: #94a3b8 !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          padding: 12px !important;
+          font-size: 13px !important;
+          font-weight: 800 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-radius: 4px !important;
+          cursor: pointer;
+          transition: all 0.15s !important;
+        }
+
+        .reset-cancel-btn:hover:not(:disabled) {
+          background-color: rgba(255, 255, 255, 0.05) !important;
+          color: #ffffff !important;
+        }
+
+        .reset-console-footer {
           background-color: rgba(15, 23, 42, 0.6);
           border-top: 1px solid rgba(255, 255, 255, 0.05);
           padding: 12px 24px;
           display: flex;
-          justify-content: space-between;
+          justify-content: center;
           align-items: center;
           font-size: 10px;
           color: #64748b;
           font-weight: 700;
-        }
-
-        .footer-status-pill {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: #10b981; /* active green */
-        }
-
-        .pulse-indicator {
-          width: 6px;
-          height: 6px;
-          background-color: #10b981;
-          border-radius: 50%;
-          display: inline-block;
-          box-shadow: 0 0 8px #10b981;
-          animation: pulse 1.8s infinite;
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(0.95); opacity: 0.5; }
-          50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 10px #10b981; }
-          100% { transform: scale(0.95); opacity: 0.5; }
         }
       `}</style>
 
@@ -359,4 +397,4 @@ const Login = ({ onLoginSuccess }) => {
   );
 };
 
-export default Login;
+export default ResetDefaultAdminForm;

@@ -65,6 +65,7 @@ const ProductCreatorForm = ({ onProductCreated }) => {
       });
 
       if (response.ok) {
+        alert('Product registered and warehouse allocated successfully!');
         setMessage({ type: 'success', text: 'Product created and warehouse allocated successfully!' });
         setName('');
         setSku('');

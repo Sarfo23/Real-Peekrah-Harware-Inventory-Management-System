@@ -32,6 +32,20 @@ const UserAdmin = () => {
   // Get current logged in user from localStorage
   const currentUser = JSON.parse(localStorage.getItem('hims_user') || '{}');
 
+  // Profile management states
+  const [profileName, setProfileName] = useState(() => {
+    const cur = JSON.parse(localStorage.getItem('hims_user') || '{}');
+    return cur.name || '';
+  });
+  const [profileUsername, setProfileUsername] = useState(() => {
+    const cur = JSON.parse(localStorage.getItem('hims_user') || '{}');
+    return cur.username || '';
+  });
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
+
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
@@ -214,6 +228,72 @@ const UserAdmin = () => {
     return matchesAction && matchesSearch;
   });
 
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!profileUsername.trim()) {
+      setError('Username is required.');
+      return;
+    }
+
+    if (profileUsername.trim().toLowerCase() === 'superadmin') {
+      setError('Username cannot be the default "superadmin".');
+      return;
+    }
+
+    if (profilePassword && profilePassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (profilePassword && profilePassword !== profileConfirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setProfileLoading(true);
+    try {
+      const token = localStorage.getItem('hims_token');
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: profileName.trim(),
+          newUsername: profileUsername.trim(),
+          newPassword: profilePassword
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update credentials.');
+      }
+
+      alert('Your profile credentials have been updated successfully!');
+      setSuccess('Profile updated successfully.');
+      
+      // Update local storage
+      localStorage.setItem('hims_token', data.token);
+      localStorage.setItem('hims_user', JSON.stringify(data.user));
+
+      // Reset password fields
+      setProfilePassword('');
+      setProfileConfirmPassword('');
+
+      // Reload window to sync welcome pill immediately
+      window.location.reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   return (
     <div className="user-admin-wrapper">
       {error && <div className="status-banner error-banner">⚠️ {error}</div>}
@@ -235,6 +315,12 @@ const UserAdmin = () => {
           }}
         >
           👣 User Footprints & Audit Trail
+        </button>
+        <button
+          className={`sub-tab-btn ${activeSubTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('profile')}
+        >
+          ⚙️ Manage My Credentials
         </button>
       </div>
 
@@ -511,6 +597,124 @@ const UserAdmin = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {activeSubTab === 'profile' && (
+        <div className="profile-manager-panel" style={{ maxWidth: '500px', margin: '20px auto 0 auto' }}>
+          <div className="user-form-panel">
+            <h4>Update My Credentials</h4>
+            <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '20px' }}>
+              Change your display name, system username, and password passcode. For security compliance, do not reuse default credentials.
+            </p>
+            <form onSubmit={handleUpdateProfile} className="admin-form">
+              <div className="form-group">
+                <label>Full Display Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Administrator Sarfo"
+                  value={profileName}
+                  onChange={e => setProfileName(e.target.value)}
+                  required
+                  disabled={profileLoading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>System Username</label>
+                <input
+                  type="text"
+                  placeholder="e.g. sarfo_admin"
+                  value={profileUsername}
+                  onChange={e => setProfileUsername(e.target.value)}
+                  required
+                  disabled={profileLoading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>New Access Passcode (Optional)</label>
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <input
+                    type={showProfilePassword ? 'text' : 'password'}
+                    placeholder="Leave blank to keep current passcode"
+                    value={profilePassword}
+                    onChange={e => setProfilePassword(e.target.value)}
+                    disabled={profileLoading}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowProfilePassword(!showProfilePassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: showProfilePassword ? 'var(--hw-orange, #f97316)' : '#94a3b8',
+                      opacity: showProfilePassword ? 1 : 0.6,
+                      padding: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      outline: 'none',
+                      transition: 'color 0.2s, opacity 0.2s'
+                    }}
+                    title={showProfilePassword ? 'Hide passcode' : 'Show passcode'}
+                  >
+                    👁️
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Confirm New Access Passcode</label>
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <input
+                    type={showProfilePassword ? 'text' : 'password'}
+                    placeholder="Confirm new passcode"
+                    value={profileConfirmPassword}
+                    onChange={e => setProfileConfirmPassword(e.target.value)}
+                    disabled={profileLoading}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowProfilePassword(!showProfilePassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: showProfilePassword ? 'var(--hw-orange, #f97316)' : '#94a3b8',
+                      opacity: showProfilePassword ? 1 : 0.6,
+                      padding: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      outline: 'none',
+                      transition: 'color 0.2s, opacity 0.2s'
+                    }}
+                    title={showProfilePassword ? 'Hide passcode' : 'Show passcode'}
+                  >
+                    👁️
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-submit" disabled={profileLoading} style={{ marginTop: '10px' }}>
+                {profileLoading ? 'Saving Credentials...' : 'Save Profile Changes'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

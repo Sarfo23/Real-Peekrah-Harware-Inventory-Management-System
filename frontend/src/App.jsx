@@ -14,6 +14,7 @@ import BulkImporter from './components/BulkImporter';
 import SystemManual from './components/SystemManual';
 import Login from './components/Login';
 import UserAdmin from './components/UserAdmin';
+import ResetDefaultAdminForm from './components/ResetDefaultAdminForm';
 import logo from './assets/Logo.png';
 
 // Global Fetch Interceptor to automatically inject JWT token headers and handle auto-logout
@@ -59,6 +60,7 @@ function App() {
       return null;
     }
   });
+  const [requiresReset, setRequiresReset] = useState(localStorage.getItem('hims_requires_reset') === 'true');
 
   const hasAccess = (section) => {
     if (!user) return false;
@@ -83,8 +85,10 @@ function App() {
     }
     localStorage.removeItem('hims_token');
     localStorage.removeItem('hims_user');
+    localStorage.removeItem('hims_requires_reset');
     setToken(null);
     setUser(null);
+    setRequiresReset(false);
     window.location.reload();
   };
 
@@ -313,7 +317,20 @@ function App() {
   };
 
   if (!token) {
-    return <Login onLoginSuccess={(t, u) => { setToken(t); setUser(u); }} />;
+    return <Login onLoginSuccess={(t, u, reset) => { setToken(t); setUser(u); setRequiresReset(!!reset); }} />;
+  }
+
+  if (requiresReset) {
+    return (
+      <ResetDefaultAdminForm 
+        onResetSuccess={(newToken, newUser) => {
+          setToken(newToken);
+          setUser(newUser);
+          setRequiresReset(false);
+        }}
+        onCancel={handleLogout}
+      />
+    );
   }
 
   return (
@@ -506,7 +523,7 @@ function App() {
                   }}
                 >
                   <span style={{ fontSize: '12px' }}>👤</span>
-                  <span>Welcome, <strong>{user.name}</strong> <span style={{ color: 'var(--hw-orange)', fontSize: '9px', marginLeft: '4px' }}>({user.role})</span></span>
+                  <span>Welcome, <strong>{user.role === 'SUPER_ADMIN' ? user.username : (user.name === 'User' ? user.username : user.name)}</strong> <span style={{ color: 'var(--hw-orange)', fontSize: '9px', marginLeft: '4px' }}>({user.role})</span></span>
                 </div>
 
                 <button 

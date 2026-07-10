@@ -85,6 +85,21 @@ const runMigration = async () => {
       console.log('discount_amount column already exists in transactions.');
     }
 
+    // 3.1 Add is_decommissioned column to products table if missing
+    console.log('Checking database table products for is_decommissioned column...');
+    const [prodColumns] = await connection.execute('SHOW COLUMNS FROM products');
+    const isDecommissionedExists = prodColumns.some(col => col.Field === 'is_decommissioned');
+
+    if (!isDecommissionedExists) {
+      console.log('Adding is_decommissioned column to products table...');
+      await connection.execute(
+        'ALTER TABLE products ADD COLUMN is_decommissioned TINYINT(1) NOT NULL DEFAULT 0'
+      );
+      console.log('is_decommissioned column added successfully.');
+    } else {
+      console.log('is_decommissioned column already exists in products.');
+    }
+
     // 4. Add foreign key constraint for user_id to transactions table
     console.log('Checking foreign key constraint link from transactions to users...');
     const [fkRows] = await connection.execute(`

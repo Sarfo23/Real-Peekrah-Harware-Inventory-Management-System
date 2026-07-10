@@ -157,6 +157,7 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
       const result = await response.json();
 
       if (response.ok) {
+        alert(`Stock movement recorded successfully!\n\n${result.message}`);
         setMessage({ text: `Success: ${result.message}`, type: 'success' });
         if (onTransactionComplete) onTransactionComplete();
         clearForm();

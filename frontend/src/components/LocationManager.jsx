@@ -10,11 +10,31 @@ const LocationManager = ({ onLocationAdded }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Retrieve user session info to check for SUPER_ADMIN role
+  const currentUser = JSON.parse(localStorage.getItem('hims_user') || '{}');
+  const isSuperAdmin = currentUser.role === 'SUPER_ADMIN';
+
   // Form states
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [locType, setLocType] = useState('SHOP'); // 'SHOP' or 'WAREHOUSE'
   const [formMessage, setFormMessage] = useState(null);
+
+  // Edit states
+  const [editingFacility, setEditingFacility] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editType, setEditType] = useState('SHOP');
+  const [editMessage, setEditMessage] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleEditClick = (fac, defaultType) => {
+    setEditingFacility(fac);
+    setEditName(fac.name);
+    setEditLocation(fac.location || '');
+    setEditType(fac.type || defaultType);
+    setEditMessage(null);
+  };
 
   const fetchLocations = async () => {
     setLoading(true);
@@ -57,6 +77,7 @@ const LocationManager = ({ onLocationAdded }) => {
       const data = await res.json();
 
       if (res.ok) {
+        alert(`${locType === 'SHOP' ? 'Shop' : 'Warehouse'} registered successfully!`);
         setFormMessage({ type: 'success', text: `${locType === 'SHOP' ? 'Shop' : 'Warehouse'} registered successfully!` });
         setName('');
         setLocation('');
@@ -67,6 +88,47 @@ const LocationManager = ({ onLocationAdded }) => {
       }
     } catch (err) {
       setFormMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editName.trim()) return;
+
+    setEditLoading(true);
+    setEditMessage(null);
+
+    try {
+      const token = localStorage.getItem('hims_token');
+      const res = await fetch(`/api/warehouses/${editingFacility.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editName.trim(),
+          location: editLocation.trim(),
+          type: editType
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert('Facility updated successfully!');
+        setEditMessage({ type: 'success', text: 'Facility updated successfully!' });
+        fetchLocations();
+        if (onLocationAdded) onLocationAdded();
+        setTimeout(() => {
+          setEditingFacility(null);
+        }, 1000);
+      } else {
+        throw new Error(data.error || 'Failed to update facility');
+      }
+    } catch (err) {
+      setEditMessage({ type: 'error', text: err.message });
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -153,6 +215,9 @@ const LocationManager = ({ onLocationAdded }) => {
                       <strong>{s.name}</strong>
                       <span>{s.location || 'No Location specified'}</span>
                     </div>
+                    {isSuperAdmin && (
+                      <button className="btn-manage" onClick={() => handleEditClick(s, 'SHOP')}>Manage</button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -174,6 +239,9 @@ const LocationManager = ({ onLocationAdded }) => {
                       <strong>{w.name}</strong>
                       <span>{w.location || 'No Location specified'}</span>
                     </div>
+                    {isSuperAdmin && (
+                      <button className="btn-manage" onClick={() => handleEditClick(w, 'WAREHOUSE')}>Manage</button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -182,7 +250,135 @@ const LocationManager = ({ onLocationAdded }) => {
         </div>
       </div>
 
+      {/* Facility Edit Modal Overlay */}
+      {editingFacility && (
+        <div className="modal-backdrop">
+          <div className="modal-container" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h3>Manage Facility</h3>
+              <button className="modal-close-btn" onClick={() => setEditingFacility(null)}>&times;</button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="location-form" style={{ padding: '20px', backgroundColor: '#ffffff' }}>
+              {editMessage && (
+                <div className={`form-msg ${editMessage.type}`}>
+                  {editMessage.type === 'error' ? '⚠️' : '✅'} {editMessage.text}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Facility Type</label>
+                <select 
+                  value={editType} 
+                  onChange={e => setEditType(e.target.value)}
+                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--hw-border)', fontSize: '14px' }}
+                >
+                  <option value="SHOP">🛒 Retail Shop</option>
+                  <option value="WAREHOUSE">🏭 Storage Warehouse</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Facility Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Geographic Location / Address</label>
+                <input
+                  type="text"
+                  value={editLocation}
+                  onChange={e => setEditLocation(e.target.value)}
+                />
+              </div>
+
+              <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button 
+                  type="button" 
+                  className="btn-submit" 
+                  style={{ backgroundColor: '#94a3b8', color: 'white' }} 
+                  onClick={() => setEditingFacility(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={editLoading}>
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
+        /* Modal Styling */
+        .modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+        }
+        .modal-container {
+          background: #ffffff;
+          border-radius: 6px;
+          width: 95%;
+          border-top: 4px solid var(--hw-orange);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+          overflow: hidden;
+        }
+        .modal-header {
+          background-color: var(--hw-charcoal);
+          padding: 14px 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .modal-header h3 {
+          margin: 0;
+          color: #ffffff;
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .modal-close-btn {
+          background: transparent !important;
+          border: none !important;
+          color: #94a3b8 !important;
+          font-size: 24px !important;
+          cursor: pointer;
+          padding: 0 !important;
+          line-height: 1;
+        }
+        .modal-close-btn:hover {
+          color: #ffffff !important;
+        }
+        .btn-manage {
+          margin-left: auto;
+          background-color: var(--hw-steel) !important;
+          color: white !important;
+          padding: 4px 8px !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          border-radius: 4px !important;
+          cursor: pointer;
+          border: none !important;
+          text-transform: uppercase;
+          transition: background 0.15s ease;
+        }
+        .btn-manage:hover {
+          background-color: var(--hw-charcoal) !important;
+        }
         .location-manager-container {
           font-family: 'Inter', sans-serif;
         }

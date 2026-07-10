@@ -27,7 +27,7 @@ const searchProducts = async (req, res) => {
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN inventory i ON p.id = i.product_id
-      WHERE p.name LIKE ? OR p.sku LIKE ?
+      WHERE (p.name LIKE ? OR p.sku LIKE ?) AND p.is_decommissioned = 0
       GROUP BY p.id
     `, [`%${query}%`, `%${query}%`]);
 
@@ -53,6 +53,7 @@ const getAllProducts = async (req, res) => {
         p.selling_price 
       FROM products p
       LEFT JOIN inventory i ON p.id = i.product_id
+      WHERE p.is_decommissioned = 0
       GROUP BY p.id
       ORDER BY p.name
     `);
@@ -210,23 +211,80 @@ const updateProduct = async (req, res) => {
   }
 };
 
-// Delete product
+// Delete product (Decommission)
 const deleteProduct = async (req, res) => {
   const { id } = req.params;
+  const option = req.query.option || 'keepHistory'; // default to safe keepHistory
+
+  const connection = await db.getConnection();
   try {
-    const [result] = await db.execute('DELETE FROM products WHERE id = ?', [id]);
+    // 1. Fetch product details first for logging and checks
+    const [prodRows] = await connection.execute('SELECT name, sku FROM products WHERE id = ?', [id]);
+    if (prodRows.length === 0) {
+      connection.release();
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    const { name, sku } = prodRows[0];
 
-    // Log user footprint
-    await logFootprint(
-      req.user ? req.user.id : 1,
-      'DELETE_PRODUCT',
-      `Deleted catalog product ID: ${id}.`
-    );
+    await connection.beginTransaction();
 
-    res.json({ message: 'Product deleted', affectedRows: result.affectedRows });
+    if (option === 'keepHistory') {
+      // Option A: Decommission but keep transactional history
+      // Rename SKU to avoid unique constraint violations if a new product with same SKU is created
+      const uniqueSuffix = `${Date.now()}`;
+      await connection.execute(
+        'UPDATE products SET is_decommissioned = 1, sku = CONCAT(sku, "-decom-", ?) WHERE id = ?',
+        [uniqueSuffix, id]
+      );
+
+      // Remove current warehouse inventory mappings so stock is zeroed out/not active
+      await connection.execute('DELETE FROM inventory WHERE product_id = ?', [id]);
+
+      await connection.commit();
+
+      // Log user footprint
+      await logFootprint(
+        req.user ? req.user.id : 1,
+        'DECOMMISSION_PRODUCT_KEEP_HISTORY',
+        `Decommissioned product: "${name}" (SKU: "${sku}", ID: ${id}), retaining transaction history.`
+      );
+
+      res.json({ message: 'Product decommissioned successfully, transactional history kept.' });
+    } else if (option === 'deleteHistory') {
+      // Option B: Complete wipe (delete product and all transactional history)
+      // Delete transactions
+      await connection.execute('DELETE FROM transactions WHERE product_id = ?', [id]);
+
+      // Delete inventory
+      await connection.execute('DELETE FROM inventory WHERE product_id = ?', [id]);
+
+      // Delete product
+      await connection.execute('DELETE FROM products WHERE id = ?', [id]);
+
+      await connection.commit();
+
+      // Log user footprint
+      await logFootprint(
+        req.user ? req.user.id : 1,
+        'DELETE_PRODUCT_AND_HISTORY',
+        `Permanently deleted product: "${name}" (SKU: "${sku}", ID: ${id}) and all its transactional/sales history.`
+      );
+
+      res.json({ message: 'Product and all transactional history permanently deleted.' });
+    } else {
+      await connection.rollback();
+      res.status(400).json({ error: 'Invalid delete option' });
+    }
   } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      // Transaction might not have started yet
+    }
     console.error('Delete Product Error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    connection.release();
   }
 };
 

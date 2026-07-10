@@ -24,6 +24,8 @@ router.use(authenticateToken);
  */
 router.get('/auth/me', authController.getMe);
 router.post('/auth/logout', authController.logout);
+router.post('/auth/reset-default-admin', (req, res) => authController.resetDefaultAdmin(req, res, db));
+router.put('/auth/profile', (req, res) => authController.updateProfile(req, res, db));
 
 /**
  * Super Admin User Management & Audit Routes
@@ -327,6 +329,7 @@ router.get('/warehouses', warehouseController.getAllWarehouses);
 router.post('/warehouses', warehouseController.createWarehouse);
 router.get('/shops', warehouseController.getAllShops);
 router.post('/shops', warehouseController.createShop);
+router.put('/warehouses/:id', authorizeRoles('SUPER_ADMIN'), warehouseController.updateFacility);
 router.get('/warehouses/:id/inventory', warehouseController.getWarehouseInventory);
 
 export default router;

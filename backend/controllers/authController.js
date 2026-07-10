@@ -29,13 +29,15 @@ const login = async (req, res, db) => {
     }
 
     // Generate JWT token
+    const requiresReset = user.username.toLowerCase() === 'superadmin';
     const token = jwt.sign(
       { 
         id: user.id, 
         username: user.username, 
         role: user.role, 
         name: user.name,
-        allowed_sections: user.allowed_sections 
+        allowed_sections: user.allowed_sections,
+        requiresReset
       },
       JWT_SECRET,
       { expiresIn: '12h' }
@@ -46,6 +48,7 @@ const login = async (req, res, db) => {
 
     res.json({
       token,
+      requiresReset,
       user: {
         id: user.id,
         name: user.name,
@@ -254,6 +257,164 @@ const getFootprints = async (req, res, db) => {
   }
 };
 
+const resetDefaultAdmin = async (req, res, db) => {
+  const { newUsername, newPassword } = req.body;
+
+  if (!newUsername || !newPassword) {
+    return res.status(400).json({ error: 'New username and password are required' });
+  }
+
+  const cleanedUsername = newUsername.trim().toLowerCase();
+  if (cleanedUsername === 'superadmin') {
+    return res.status(400).json({ error: 'New username cannot be "superadmin". Please select a custom username.' });
+  }
+  if (newPassword === 'admin1234') {
+    return res.status(400).json({ error: 'New password cannot be the default "admin1234". Please choose a secure password.' });
+  }
+
+  try {
+    // Check if username is taken by another user
+    const [existing] = await db.execute('SELECT id FROM users WHERE username = ? AND id != ?', [cleanedUsername, req.user.id]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Username is already taken' });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update user in DB
+    await db.execute(
+      'UPDATE users SET username = ?, password_hash = ? WHERE id = ?',
+      [cleanedUsername, passwordHash, req.user.id]
+    );
+
+    // Fetch the updated user
+    const [updatedRows] = await db.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    const user = updatedRows[0];
+
+    // Generate a fresh JWT token without requiresReset flag
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role, 
+        name: user.name,
+        allowed_sections: user.allowed_sections 
+      },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    // Log footprint
+    await logFootprint(user.id, 'RESET_DEFAULT_CREDENTIALS', `Default superadmin credentials changed to custom username: ${user.username}.`);
+
+    res.json({
+      message: 'Credentials updated successfully!',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        allowed_sections: user.allowed_sections
+      }
+    });
+
+  } catch (error) {
+    console.error('Reset Default Admin Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const updateProfile = async (req, res, db) => {
+  const { newUsername, newPassword, name } = req.body;
+
+  if (!newUsername) {
+    return res.status(400).json({ error: 'Username is required' });
+  }
+
+  const cleanedUsername = newUsername.trim().toLowerCase();
+  if (cleanedUsername === 'superadmin') {
+    return res.status(400).json({ error: 'Username cannot be "superadmin". Please choose a custom username.' });
+  }
+
+  try {
+    // Check if username is taken by someone else
+    const [existing] = await db.execute('SELECT id FROM users WHERE username = ? AND id != ?', [cleanedUsername, req.user.id]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Username is already taken' });
+    }
+
+    let passwordHash = null;
+    if (newPassword && newPassword.trim()) {
+      if (newPassword === 'admin1234') {
+        return res.status(400).json({ error: 'Password cannot be "admin1234". Please choose a secure password.' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+      }
+      const salt = await bcrypt.genSalt(10);
+      passwordHash = await bcrypt.hash(newPassword, salt);
+    }
+
+    // Prepare update query
+    let query = 'UPDATE users SET username = ?';
+    let params = [cleanedUsername];
+
+    if (name && name.trim()) {
+      query += ', name = ?';
+      params.push(name.trim());
+    }
+
+    if (passwordHash) {
+      query += ', password_hash = ?';
+      params.push(passwordHash);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(req.user.id);
+
+    await db.execute(query, params);
+
+    // Fetch the updated user
+    const [updatedRows] = await db.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    const user = updatedRows[0];
+
+    // Generate a fresh JWT token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role, 
+        name: user.name,
+        allowed_sections: user.allowed_sections 
+      },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    // Log footprint
+    await logFootprint(user.id, 'PROFILE_UPDATE', `User updated their own credentials. Username: ${user.username}.`);
+
+    res.json({
+      message: 'Profile credentials updated successfully!',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        allowed_sections: user.allowed_sections
+      }
+    });
+
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export default {
   login,
   logout,
@@ -262,5 +423,7 @@ export default {
   createUser,
   updateUserRole,
   deleteUser,
-  getFootprints
+  getFootprints,
+  resetDefaultAdmin,
+  updateProfile
 };

@@ -152,6 +152,7 @@ function StockTransferForm({ onTransferComplete }) {
 
       const data = await res.json();
       if (res.ok) {
+        alert(data.message || 'Stock transfer logged successfully.');
         setMessage({ type: 'success', text: data.message || 'Stock transfer logged successfully.' });
         clearForm();
         if (onTransferComplete) onTransferComplete();

@@ -18,6 +18,11 @@ const authenticateToken = (req, res, next) => {
   try {
     const verified = jwt.verify(token, JWT_SECRET);
     req.user = verified;
+
+    if (verified.requiresReset && req.path !== '/auth/reset-default-admin' && req.path !== '/auth/logout') {
+      return res.status(403).json({ error: 'Password change required: You must change your default superadmin credentials before accessing other routes.' });
+    }
+
     next();
   } catch (error) {
     console.error('JWT Verification Error:', error.message);
