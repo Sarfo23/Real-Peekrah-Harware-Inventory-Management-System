@@ -25,11 +25,18 @@ const runMigration = async () => {
     const schemaPath = path.join(__dirname, '../db/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-      // Split by semicolon, filter out comments and empty statements
-      const statements = schemaSql
+      // Clean up single-line comments from the SQL file first
+      const cleanSql = schemaSql
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => !line.startsWith('--') && !line.startsWith('#'))
+        .join('\n');
+      
+      // Split by semicolon and filter empty statements
+      const statements = cleanSql
         .split(';')
         .map(st => st.trim())
-        .filter(st => st.length > 0 && !st.startsWith('--'));
+        .filter(st => st.length > 0);
 
       console.log(`Executing ${statements.length} schema statements...`);
       for (const statement of statements) {
