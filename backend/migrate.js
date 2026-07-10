@@ -1,7 +1,13 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const runMigration = async () => {
   let connection;
@@ -13,6 +19,34 @@ const runMigration = async () => {
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'hims_db',
     });
+
+    // 0. Load and execute base schema.sql
+    console.log('Loading base schema.sql...');
+    const schemaPath = path.join(__dirname, '../db/schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+      // Split by semicolon, filter out comments and empty statements
+      const statements = schemaSql
+        .split(';')
+        .map(st => st.trim())
+        .filter(st => st.length > 0 && !st.startsWith('--'));
+
+      console.log(`Executing ${statements.length} schema statements...`);
+      for (const statement of statements) {
+        try {
+          await connection.execute(statement);
+        } catch (stmtErr) {
+          // Ignore table/column already exists or duplicate index errors
+          if (!stmtErr.message.includes('already exists') && !stmtErr.message.includes('Duplicate key')) {
+            console.error('Error executing statement:', statement);
+            console.error(stmtErr.message);
+          }
+        }
+      }
+      console.log('Base schema checked/applied.');
+    } else {
+      console.warn('schema.sql file not found at:', schemaPath);
+    }
 
     // 1. Create Users Table if not exists
     console.log('Checking database table users...');
