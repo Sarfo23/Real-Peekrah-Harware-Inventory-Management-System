@@ -2117,6 +2117,151 @@ function App() {
           font-size: 12px;
           border-top: 4px solid var(--hw-orange);
         }
+
+        /* Mobile and Tablet Responsiveness Overrides */
+        @media (max-width: 768px) {
+          .hardware-nav {
+            padding: 1rem !important;
+          }
+          
+          .hardware-nav-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 15px !important;
+            text-align: center !important;
+          }
+          
+          .hardware-brand {
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 8px !important;
+          }
+          
+          .hardware-brand-text h1 {
+            font-size: 14px !important;
+            line-height: 1.3 !important;
+            text-align: center !important;
+          }
+
+          .hardware-brand-text p {
+            text-align: center !important;
+          }
+
+          .hardware-nav-actions {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 10px !important;
+            width: 100% !important;
+          }
+
+          .welcome-pill {
+            margin-right: 0 !important;
+            width: 100% !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+          }
+
+          .theme-toggle-btn {
+            margin-right: 0 !important;
+            flex-grow: 1 !important;
+            justify-content: center !important;
+          }
+
+          /* Main Workspace Padding */
+          .large-padding {
+            padding: 1rem !important;
+          }
+
+          .hardware-col {
+            gap: 1.5rem !important;
+          }
+
+          /* Grid structures inside components */
+          .manager-grid, .user-admin-grid, .dashboard-grid {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+          }
+
+          .financial-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .movement-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Form structures */
+          .form-section, .creator-form .form-section {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+
+          .allocation-box .form-section {
+            grid-template-columns: 1fr !important;
+          }
+
+          .import-toggle-row {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+
+          .action-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          
+          .file-input-label {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            text-align: center !important;
+          }
+
+          /* Responsive Tables scroll wrapper */
+          .table-responsive, 
+          .preview-table-wrapper, 
+          .logs-table-container, 
+          .active-stock-wrapper {
+            width: 100% !important;
+            overflow-x: auto !important;
+            display: block !important;
+            -webkit-overflow-scrolling: touch !important;
+            border: 1px solid var(--hw-border) !important;
+            margin-bottom: 10px !important;
+          }
+
+          table {
+            min-width: 600px !important;
+          }
+
+          /* Search results and lists */
+          .search-bar-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+
+          /* Modal sizing */
+          .search-modal-content, .decom-options-modal, .edit-facility-modal {
+            width: 95% !important;
+            margin: 10px !important;
+            max-height: 90vh !important;
+          }
+          
+          .modal-body-split {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+          }
+
+          .decom-btn-group {
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
+          
+          .decom-option-card {
+            padding: 12px !important;
+          }
+        }
       `}</style>
     </div>
   );
