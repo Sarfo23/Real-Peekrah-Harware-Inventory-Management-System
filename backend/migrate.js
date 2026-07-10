@@ -4,14 +4,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const runMigration = async () => {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'hims_db',
-  });
-
+  let connection;
   try {
+    console.log('Connecting to database for schema migrations...');
+    connection = await mysql.createConnection({
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'hims_db',
+    });
+
     // 1. Create Users Table if not exists
     console.log('Checking database table users...');
     await connection.execute(`
@@ -128,9 +130,12 @@ const runMigration = async () => {
 
     console.log('Database schema migration completed.');
   } catch (error) {
-    console.error('Migration failed:', error);
+    console.error('Migration failed:', error.message);
+    process.exit(1); // Fail the build/startup if migration fails
   } finally {
-    await connection.end();
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
