@@ -1707,6 +1707,7 @@ function App() {
           font-weight: 800;
           color: #ffffff;
           letter-spacing: -0.02em;
+          white-space: nowrap;
         }
 
         .hardware-brand-text p {
@@ -1716,6 +1717,7 @@ function App() {
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.08em;
+          white-space: nowrap;
         }
 
         .hardware-badge-pill {
