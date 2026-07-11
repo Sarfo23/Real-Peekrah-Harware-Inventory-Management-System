@@ -590,7 +590,7 @@ function App() {
                     gap: '6px',
                     backgroundColor: 'var(--hw-panel-bg, #f1f5f9)',
                     border: '1px solid var(--hw-border, #e2e8f0)',
-                    padding: '6px 12px',
+                    padding: '5px 10px',
                     borderRadius: '4px',
                     fontSize: '11px',
                     fontWeight: '700',
@@ -1281,7 +1281,7 @@ function App() {
           background-color: var(--hw-steel) !important;
           color: white !important;
           border: 1px solid var(--hw-border) !important;
-          padding: 0 14px !important;
+          padding: 0 10px !important;
           font-size: 11px !important;
           font-weight: 700 !important;
           text-transform: uppercase;
@@ -1291,7 +1291,7 @@ function App() {
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          height: 34px !important;
+          height: 28px !important;
           box-sizing: border-box !important;
           white-space: nowrap !important;
         }
@@ -1304,7 +1304,7 @@ function App() {
           background-color: var(--hw-steel) !important;
           color: white !important;
           border: 1px solid var(--hw-border) !important;
-          padding: 0 14px !important;
+          padding: 0 10px !important;
           font-size: 11px !important;
           font-weight: 700 !important;
           text-transform: uppercase;
@@ -1314,7 +1314,7 @@ function App() {
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          height: 34px !important;
+          height: 28px !important;
           box-sizing: border-box !important;
           white-space: nowrap !important;
         }
@@ -1334,8 +1334,8 @@ function App() {
           background-color: var(--hw-charcoal) !important;
           border: 1px solid var(--hw-border) !important;
           color: white !important;
-          padding: 0 12px !important;
-          font-size: 14px !important;
+          padding: 0 10px !important;
+          font-size: 12px !important;
           border-radius: 4px;
           cursor: pointer;
           position: relative;
@@ -1343,7 +1343,7 @@ function App() {
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          height: 34px !important;
+          height: 28px !important;
           box-sizing: border-box !important;
         }
 
@@ -1654,23 +1654,24 @@ function App() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 20px;
         }
 
         .hardware-nav-actions {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 12px;
         }
 
         .nav-action-btn {
           background: transparent;
           border: 1px solid var(--hw-orange);
           color: var(--hw-orange);
-          padding: 8px 16px;
+          padding: 5px 12px;
           border-radius: 4px;
           font-weight: 700;
           text-transform: uppercase;
-          font-size: 12px;
+          font-size: 11px;
           cursor: pointer;
           transition: all 0.2s;
         }
