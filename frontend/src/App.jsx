@@ -52,8 +52,28 @@ function App() {
   const [activeOpTab, setActiveOpTab] = useState('log'); // 'log' or 'register'
   const [lowStockCount, setLowStockCount] = useState(0);
   const [manualOpen, setManualOpen] = useState(false);
-  const [token, setToken] = useState(localStorage.getItem('hims_token') || null);
+  const [token, setToken] = useState(() => {
+    const savedToken = localStorage.getItem('hims_token');
+    const lastActivity = localStorage.getItem('hims_last_activity');
+    if (savedToken) {
+      if (!lastActivity) {
+        localStorage.setItem('hims_last_activity', Date.now().toString());
+        return savedToken;
+      }
+      const inactiveTime = Date.now() - parseInt(lastActivity, 10);
+      if (inactiveTime > 600000) { // 10 minutes in ms
+        localStorage.removeItem('hims_token');
+        localStorage.removeItem('hims_user');
+        localStorage.removeItem('hims_requires_reset');
+        localStorage.removeItem('hims_last_activity');
+        return null;
+      }
+    }
+    return savedToken || null;
+  });
   const [user, setUser] = useState(() => {
+    const savedToken = localStorage.getItem('hims_token');
+    if (!savedToken) return null;
     try {
       return JSON.parse(localStorage.getItem('hims_user')) || null;
     } catch {
@@ -86,11 +106,60 @@ function App() {
     localStorage.removeItem('hims_token');
     localStorage.removeItem('hims_user');
     localStorage.removeItem('hims_requires_reset');
+    localStorage.removeItem('hims_last_activity');
     setToken(null);
     setUser(null);
     setRequiresReset(false);
     window.location.reload();
   };
+
+  // Inactivity session expiration effect
+  useEffect(() => {
+    if (!token) return;
+
+    const updateActivity = () => {
+      const now = Date.now();
+      const lastActivity = localStorage.getItem('hims_last_activity');
+      if (!lastActivity || now - parseInt(lastActivity, 10) > 5000) {
+        localStorage.setItem('hims_last_activity', now.toString());
+      }
+    };
+
+    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity, true);
+    });
+
+    const intervalId = setInterval(() => {
+      const lastActivity = localStorage.getItem('hims_last_activity');
+      if (lastActivity) {
+        const inactiveTime = Date.now() - parseInt(lastActivity, 10);
+        if (inactiveTime > 600000) { // 10 minutes in ms
+          console.log('Session expired due to inactivity.');
+          handleLogout();
+        }
+      } else {
+        localStorage.setItem('hims_last_activity', Date.now().toString());
+      }
+    }, 10000);
+
+    const initialLastActivity = localStorage.getItem('hims_last_activity');
+    if (initialLastActivity) {
+      const inactiveTime = Date.now() - parseInt(initialLastActivity, 10);
+      if (inactiveTime > 600000) {
+        handleLogout();
+      }
+    } else {
+      localStorage.setItem('hims_last_activity', Date.now().toString());
+    }
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, updateActivity, true);
+      });
+      clearInterval(intervalId);
+    };
+  }, [token]);
 
   useEffect(() => {
     if (!user) return;
@@ -317,13 +386,23 @@ function App() {
   };
 
   if (!token) {
-    return <Login onLoginSuccess={(t, u, reset) => { setToken(t); setUser(u); setRequiresReset(!!reset); }} />;
+    return (
+      <Login 
+        onLoginSuccess={(t, u, reset) => { 
+          localStorage.setItem('hims_last_activity', Date.now().toString());
+          setToken(t); 
+          setUser(u); 
+          setRequiresReset(!!reset); 
+        }} 
+      />
+    );
   }
 
   if (requiresReset) {
     return (
       <ResetDefaultAdminForm 
         onResetSuccess={(newToken, newUser) => {
+          localStorage.setItem('hims_last_activity', Date.now().toString());
           setToken(newToken);
           setUser(newUser);
           setRequiresReset(false);
