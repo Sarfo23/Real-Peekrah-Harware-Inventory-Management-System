@@ -602,7 +602,7 @@ function App() {
                   }}
                 >
                   <span style={{ fontSize: '12px' }}>👤</span>
-                  <span>Welcome, <strong>{user.role === 'SUPER_ADMIN' ? user.username : (user.name === 'User' ? user.username : user.name)}</strong> <span style={{ color: 'var(--hw-orange)', fontSize: '9px', marginLeft: '4px' }}>({user.role})</span></span>
+                  <span>Welcome, <strong>{user.username}</strong></span>
                 </div>
 
                 <button 
