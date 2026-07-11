@@ -1684,6 +1684,7 @@ function App() {
           display: flex;
           align-items: center;
           gap: 14px;
+          flex-shrink: 0;
         }
 
         .hardware-logo {
@@ -2197,6 +2198,31 @@ function App() {
           padding: 1.5rem;
           font-size: 12px;
           border-top: 4px solid var(--hw-orange);
+        }
+
+        /* Medium/Laptop Screens Optimization */
+        @media (min-width: 769px) and (max-width: 1200px) {
+          .hardware-nav {
+            padding: 0.8rem 1.5rem !important;
+          }
+          .hardware-brand-text h1 {
+            font-size: 1.15rem !important;
+          }
+          .hardware-brand-text p {
+            font-size: 10px !important;
+            letter-spacing: 0.05em !important;
+          }
+          .hardware-nav-actions {
+            gap: 10px !important;
+          }
+          .nav-action-btn {
+            padding: 6px 12px !important;
+            font-size: 11px !important;
+          }
+          .welcome-pill {
+            padding: 4px 8px !important;
+            font-size: 10px !important;
+          }
         }
 
         /* Mobile and Tablet Responsiveness Overrides */
