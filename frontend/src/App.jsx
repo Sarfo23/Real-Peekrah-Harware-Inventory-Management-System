@@ -61,7 +61,7 @@ function App() {
         return savedToken;
       }
       const inactiveTime = Date.now() - parseInt(lastActivity, 10);
-      if (inactiveTime > 600000) { // 10 minutes in ms
+      if (inactiveTime > 900000) { // 15 minutes in ms
         localStorage.removeItem('hims_token');
         localStorage.removeItem('hims_user');
         localStorage.removeItem('hims_requires_reset');
@@ -134,7 +134,7 @@ function App() {
       const lastActivity = localStorage.getItem('hims_last_activity');
       if (lastActivity) {
         const inactiveTime = Date.now() - parseInt(lastActivity, 10);
-        if (inactiveTime > 600000) { // 10 minutes in ms
+        if (inactiveTime > 900000) { // 15 minutes in ms
           console.log('Session expired due to inactivity.');
           handleLogout();
         }
@@ -146,7 +146,7 @@ function App() {
     const initialLastActivity = localStorage.getItem('hims_last_activity');
     if (initialLastActivity) {
       const inactiveTime = Date.now() - parseInt(initialLastActivity, 10);
-      if (inactiveTime > 600000) {
+      if (inactiveTime > 900000) {
         handleLogout();
       }
     } else {
