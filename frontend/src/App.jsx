@@ -2282,6 +2282,11 @@ function App() {
             padding: 1rem !important;
           }
 
+          .hardware-workspace {
+            padding: 1rem !important;
+            gap: 1.5rem !important;
+          }
+
           .hardware-col {
             gap: 1.5rem !important;
           }
