@@ -792,7 +792,7 @@ function App() {
               </div>
             </div>
 
-            <div className={`movement-widescreen-grid ${activeOpTab === 'users' ? 'users-view-active' : ''}`}>
+            <div className="movement-widescreen-grid">
               {/* Left Column: Product Registry Reference (Widescreen) */}
               <div className="movement-col-left">
                 <div className="hardware-panel category-accent full-height-panel">
@@ -1987,9 +1987,7 @@ function App() {
           align-items: start;
         }
 
-        .movement-widescreen-grid.users-view-active {
-          grid-template-columns: 1.1fr 1.4fr;
-        }
+
 
         @media (max-width: 1200px) {
           .movement-widescreen-grid {
