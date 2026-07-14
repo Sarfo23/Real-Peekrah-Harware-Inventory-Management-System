@@ -246,7 +246,7 @@ function StockTransferForm({ onTransferComplete }) {
           </div>
         )}
 
-        <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+        <div className="form-row">
           <div className="form-group">
             <label>Input Unit</label>
             <select value={inputUnit} onChange={e => setInputUnit(e.target.value)}>
@@ -255,7 +255,7 @@ function StockTransferForm({ onTransferComplete }) {
             </select>
           </div>
           {inputUnit === 'BX' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: 'var(--hw-bg-light)', padding: '10px', borderRadius: '4px', border: '1px dashed var(--hw-border)', gridColumn: 'span 2' }}>
+            <div className="box-input-row">
               <div className="form-group">
                 <label>Number of Boxes</label>
                 <input
@@ -329,6 +329,32 @@ function StockTransferForm({ onTransferComplete }) {
           .form-grid {
             grid-template-columns: 1fr;
             gap: 10px;
+          }
+        }
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 15px;
+        }
+        @media (max-width: 480px) {
+          .form-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+        }
+        .box-input-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          background-color: var(--hw-bg-light);
+          padding: 10px;
+          border-radius: 4px;
+          border: 1px dashed var(--hw-border);
+          grid-column: span 2;
+        }
+        @media (max-width: 480px) {
+          .box-input-row {
+            grid-template-columns: 1fr;
           }
         }
         .form-group {

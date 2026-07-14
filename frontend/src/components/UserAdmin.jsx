@@ -733,6 +733,29 @@ const UserAdmin = () => {
           padding-bottom: 2px;
         }
 
+        @media (max-width: 600px) {
+          .sub-tabs-header {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            border-bottom: none;
+            padding-bottom: 8px;
+          }
+          .sub-tab-btn {
+            flex: 0 1 auto;
+            border: 1px solid var(--hw-border) !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+            background-color: var(--hw-panel-bg) !important;
+            white-space: nowrap;
+          }
+          .sub-tab-btn.active {
+            background-color: var(--hw-orange) !important;
+            color: white !important;
+            border-color: var(--hw-orange) !important;
+          }
+        }
+
         .sub-tab-btn {
           background: transparent !important;
           border: none !important;
@@ -990,6 +1013,21 @@ const UserAdmin = () => {
           margin-bottom: 15px;
         }
 
+        @media (max-width: 600px) {
+          .logs-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+          }
+          .toolbar-actions {
+            justify-content: center;
+            width: 100%;
+          }
+          .logs-search {
+            width: 100% !important;
+          }
+        }
+
         .toolbar-left h4 {
           border-bottom: none !important;
           margin-bottom: 2px !important;
@@ -1041,6 +1079,9 @@ const UserAdmin = () => {
         .logs-table-container {
           max-height: 480px;
           overflow-y: auto;
+          overflow-x: auto;
+          width: 100%;
+          -webkit-overflow-scrolling: touch;
         }
 
         .logs-table th {
