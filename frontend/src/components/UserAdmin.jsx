@@ -914,7 +914,11 @@ const UserAdmin = () => {
         /* User List table */
         .table-responsive {
           width: 100%;
+          max-width: 100%;
           overflow-x: auto;
+          display: block;
+          -webkit-overflow-scrolling: touch;
+          box-sizing: border-box;
         }
 
         .user-table {
@@ -1090,7 +1094,10 @@ const UserAdmin = () => {
           overflow-y: auto;
           overflow-x: auto;
           width: 100%;
+          max-width: 100%;
+          display: block;
           -webkit-overflow-scrolling: touch;
+          box-sizing: border-box;
         }
 
         .logs-table th {
