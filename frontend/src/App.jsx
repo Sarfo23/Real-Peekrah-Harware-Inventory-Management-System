@@ -2353,16 +2353,34 @@ function App() {
 
           .operation-tabs-header {
             display: flex !important;
-            overflow-x: auto !important;
-            white-space: nowrap !important;
-            flex-wrap: nowrap !important;
-            -webkit-overflow-scrolling: touch !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            padding: 10px !important;
+            background-color: var(--hw-bg-light) !important;
+            border-bottom: 1px solid var(--hw-border) !important;
           }
           
           .operation-tab-btn {
-            flex: 0 0 auto !important;
-            padding: 10px 16px !important;
+            flex: 0 1 auto !important;
+            padding: 8px 14px !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            border: 1px solid var(--hw-border) !important;
+            border-radius: 4px !important;
+            background-color: var(--hw-panel-bg) !important;
+            color: var(--hw-steel) !important;
             white-space: nowrap !important;
+            cursor: pointer;
+            transition: all 0.2s ease !important;
+          }
+
+          .operation-tab-btn.active {
+            background-color: var(--hw-orange) !important;
+            color: #ffffff !important;
+            border-color: var(--hw-orange) !important;
+            border-bottom: 1px solid var(--hw-orange) !important;
           }
 
           /* Search results and lists */
