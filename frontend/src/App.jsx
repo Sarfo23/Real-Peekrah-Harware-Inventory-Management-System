@@ -1555,13 +1555,15 @@ function App() {
           border-color: #1e293b;
         }
 
-        body {
+        html, body {
           margin: 0;
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           background-color: var(--hw-bg);
           color: var(--hw-slate-dark);
           letter-spacing: -0.01em;
           -webkit-font-smoothing: antialiased;
+          max-width: 100vw;
+          overflow-x: hidden;
         }
 
         .hardware-hims-app {
@@ -2329,7 +2331,9 @@ function App() {
           .table-responsive, 
           .preview-table-wrapper, 
           .logs-table-container, 
-          .active-stock-wrapper {
+          .active-stock-wrapper,
+          .ref-table-wrapper,
+          .product-results {
             width: 100% !important;
             overflow-x: auto !important;
             display: block !important;
@@ -2340,6 +2344,20 @@ function App() {
 
           table {
             min-width: 600px !important;
+          }
+
+          .operation-tabs-header {
+            display: flex !important;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          
+          .operation-tab-btn {
+            flex: 0 0 auto !important;
+            padding: 10px 16px !important;
+            white-space: nowrap !important;
           }
 
           /* Search results and lists */

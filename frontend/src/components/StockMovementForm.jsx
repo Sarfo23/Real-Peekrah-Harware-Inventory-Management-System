@@ -304,6 +304,9 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
           border-radius: 4px;
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 480px) {
+          .form-row { grid-template-columns: 1fr; gap: 10px; }
+        }
         .card-inside-row {
           background-color: #f8fafc;
           border: 1px dashed #cbd5e1;
