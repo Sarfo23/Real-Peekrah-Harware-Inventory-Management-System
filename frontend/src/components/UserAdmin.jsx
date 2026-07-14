@@ -733,29 +733,6 @@ const UserAdmin = () => {
           padding-bottom: 2px;
         }
 
-        @media (max-width: 768px) {
-          .sub-tabs-header {
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-            border-bottom: none;
-            padding-bottom: 8px;
-          }
-          .sub-tab-btn {
-            flex: 0 1 auto;
-            border: 1px solid var(--hw-border) !important;
-            border-radius: 4px !important;
-            padding: 8px 12px !important;
-            background-color: var(--hw-panel-bg) !important;
-            white-space: nowrap;
-          }
-          .sub-tab-btn.active {
-            background-color: var(--hw-orange) !important;
-            color: white !important;
-            border-color: var(--hw-orange) !important;
-          }
-        }
-
         .sub-tab-btn {
           background: transparent !important;
           border: none !important;
@@ -778,6 +755,29 @@ const UserAdmin = () => {
           color: var(--hw-orange) !important;
           border-bottom-color: var(--hw-orange) !important;
           background-color: var(--hw-bg-light) !important;
+        }
+
+        @media (max-width: 768px) {
+          .sub-tabs-header {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            border-bottom: none;
+            padding-bottom: 8px;
+          }
+          .sub-tab-btn {
+            flex: 0 1 auto;
+            border: 1px solid var(--hw-border) !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+            background-color: var(--hw-panel-bg) !important;
+            white-space: nowrap;
+          }
+          .sub-tab-btn.active {
+            background-color: var(--hw-orange) !important;
+            color: white !important;
+            border-color: var(--hw-orange) !important;
+          }
         }
 
         .user-admin-grid {
