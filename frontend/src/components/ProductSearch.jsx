@@ -225,6 +225,12 @@ const ProductSearch = () => {
           font-style: italic;
           margin-bottom: 15px;
         }
+        .product-results {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          margin-top: 10px;
+        }
         .product-table {
           width: 100%;
           border-collapse: separate;

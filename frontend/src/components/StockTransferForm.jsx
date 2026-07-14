@@ -325,6 +325,12 @@ function StockTransferForm({ onTransferComplete }) {
           grid-template-columns: 1fr 1fr;
           gap: 15px;
         }
+        @media (max-width: 480px) {
+          .form-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+        }
         .form-group {
           display: flex;
           flex-direction: column;

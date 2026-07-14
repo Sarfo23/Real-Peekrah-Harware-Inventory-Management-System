@@ -884,8 +884,11 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
         .ref-table-wrapper {
           max-height: 580px;
           overflow-y: auto;
+          overflow-x: auto;
+          width: 100%;
           border: 1px solid var(--hw-border);
           border-radius: 4px;
+          -webkit-overflow-scrolling: touch;
         }
         .ref-table {
           width: 100%;
