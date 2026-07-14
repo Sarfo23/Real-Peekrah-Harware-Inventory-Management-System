@@ -77,7 +77,7 @@ const ProductSearch = () => {
       </p>
 
       <div className="search-box">
-        <span className="search-icon-inside">🔍</span>
+        <span className="search-icon-outside">🔍</span>
         <input
           type="text"
           placeholder="Type product name or UMO / SKU (min. 2 characters)..."
@@ -194,12 +194,18 @@ const ProductSearch = () => {
           margin-top: -5px;
         }
         .search-box {
-          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 12px;
           margin-bottom: 20px;
         }
+        .search-icon-outside {
+          font-size: 20px;
+          color: var(--hw-steel);
+        }
         .search-input {
-          width: 100%;
-          padding: 12px 16px 12px 42px;
+          flex: 1;
+          padding: 12px 16px;
           font-size: 15px;
           border: 2px solid var(--hw-border);
           border-radius: 8px;
@@ -212,15 +218,6 @@ const ProductSearch = () => {
           border-color: var(--hw-blue);
           background-color: #ffffff;
           box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-        }
-        .search-icon-inside {
-          position: absolute;
-          left: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 18px;
-          color: #94a3b8;
-          pointer-events: none;
         }
         .loading-indicator {
           font-size: 14px;
