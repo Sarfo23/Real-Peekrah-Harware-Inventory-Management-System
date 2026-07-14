@@ -62,7 +62,7 @@ const ResetDefaultAdminForm = ({ onResetSuccess, onCancel }) => {
         throw new Error(data.error || 'Failed to update credentials.');
       }
 
-      alert('Credentials updated successfully! Access granted to HIMS.');
+
       
       // Update local storage
       localStorage.setItem('hims_token', data.token);

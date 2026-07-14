@@ -31,6 +31,7 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
     selling_price: 0
   });
   const [editMessage, setEditMessage] = useState(null);
+  const [successBanner, setSuccessBanner] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
 
   // Warehouse-wise inventory levels for the editing product
@@ -129,12 +130,14 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
         ? `Product "${decomProduct?.name || ''}" has been decommissioned successfully. History kept on dashboard.`
         : `Product "${decomProduct?.name || ''}" and all its transactional/sales history have been permanently deleted.`;
       
-      alert(successMessage);
+      setSuccessBanner(successMessage);
+      setTimeout(() => setSuccessBanner(null), 4000);
       
       setProducts(products.filter(p => p.id !== id));
       setDecomProduct(null);
     } catch (err) {
-      alert(`Decommissioning error: ${err.message}`);
+      setError(`Decommissioning error: ${err.message}`);
+      setTimeout(() => setError(null), 4000);
     }
   };
 
@@ -227,7 +230,6 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
       });
 
       if (response.ok) {
-        alert('Hardware asset updated successfully!');
         setEditMessage({ type: 'success', text: 'Hardware asset updated successfully!' });
         await fetchData();
         // Keep modal open, but clear messages after a short delay
@@ -275,7 +277,6 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
       const result = await response.json();
 
       if (response.ok) {
-        alert(`Stock movement logged successfully!\n\nLogged: ${result.message}`);
         setMovementMessage({ type: 'success', text: `Logged: ${result.message}` });
         setQuickMovement(prev => ({ ...prev, quantity: 1 }));
         setQuickNumBoxes(1);
@@ -392,6 +393,11 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
 
       {loading && <p className="loading-text">Scanning Hardware Assets...</p>}
       {error && <p className="error-text">Error: {error}</p>}
+      {successBanner && (
+        <div className="status-banner success-banner" style={{ margin: '10px 0', padding: '10px', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid #22c55e', fontWeight: 'bold', fontSize: '13px' }}>
+          ✅ {successBanner}
+        </div>
+      )}
 
       {!loading && !error && products.length === 0 && (
         <p className="empty-text">No registered assets found.</p>

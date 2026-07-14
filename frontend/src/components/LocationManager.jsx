@@ -77,7 +77,6 @@ const LocationManager = ({ onLocationAdded }) => {
       const data = await res.json();
 
       if (res.ok) {
-        alert(`${locType === 'SHOP' ? 'Shop' : 'Warehouse'} registered successfully!`);
         setFormMessage({ type: 'success', text: `${locType === 'SHOP' ? 'Shop' : 'Warehouse'} registered successfully!` });
         setName('');
         setLocation('');
@@ -115,7 +114,6 @@ const LocationManager = ({ onLocationAdded }) => {
 
       const data = await res.json();
       if (res.ok) {
-        alert('Facility updated successfully!');
         setEditMessage({ type: 'success', text: 'Facility updated successfully!' });
         fetchLocations();
         if (onLocationAdded) onLocationAdded();

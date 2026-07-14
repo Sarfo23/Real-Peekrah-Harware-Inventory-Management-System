@@ -135,7 +135,6 @@ const BulkImporter = ({ onImportComplete }) => {
       result = await response.json();
 
       if (response.ok) {
-        alert(`Bulk import successful: ${result.message}`);
         setMessage({ text: `Success: ${result.message}`, type: 'success' });
         setPreviewData([]);
         setFile(null);

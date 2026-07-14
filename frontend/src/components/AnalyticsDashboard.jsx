@@ -124,7 +124,8 @@ const AnalyticsDashboard = () => {
       val = queryYear;
     }
     if (!val) {
-      alert('Please select a valid query value.');
+      setError('Please select a valid query value.');
+      setTimeout(() => setError(null), 3000);
       return;
     }
     fetchSalesReport(queryType, val);

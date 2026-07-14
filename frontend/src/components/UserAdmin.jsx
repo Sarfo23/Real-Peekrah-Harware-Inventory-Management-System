@@ -274,8 +274,7 @@ const UserAdmin = () => {
         throw new Error(data.error || 'Failed to update credentials.');
       }
 
-      alert('Your profile credentials have been updated successfully!');
-      setSuccess('Profile updated successfully.');
+      setSuccess('Your profile credentials have been updated successfully!');
       
       // Update local storage
       localStorage.setItem('hims_token', data.token);
@@ -286,7 +285,9 @@ const UserAdmin = () => {
       setProfileConfirmPassword('');
 
       // Reload window to sync welcome pill immediately
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err) {
       setError(err.message);
     } finally {
