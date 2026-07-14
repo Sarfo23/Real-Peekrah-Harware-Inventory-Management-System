@@ -733,7 +733,7 @@ const UserAdmin = () => {
           padding-bottom: 2px;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .sub-tabs-header {
             flex-wrap: wrap;
             justify-content: center;
@@ -1013,7 +1013,7 @@ const UserAdmin = () => {
           margin-bottom: 15px;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .logs-toolbar {
             flex-direction: column;
             align-items: stretch;

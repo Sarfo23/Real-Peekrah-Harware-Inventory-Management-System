@@ -2109,12 +2109,19 @@ function App() {
           font-style: italic;
         }
 
-        input, select {
+        input:not([type="checkbox"]):not([type="radio"]), select {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
           border-radius: 4px !important;
           border: 1px solid #cbd5e1 !important;
           padding: 9px 12px !important;
           font-size: 13px !important;
           background-color: #ffffff !important;
+        }
+
+        input[type="checkbox"], input[type="radio"] {
+          box-sizing: border-box !important;
         }
 
         input:focus, select:focus {
