@@ -827,6 +827,15 @@ const UserAdmin = () => {
           border: 1px solid var(--hw-border);
           border-radius: 6px;
           padding: 20px;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+          .user-form-panel, .users-list-panel, .footprints-logs-panel {
+            padding: 12px !important;
+          }
         }
 
         .admin-form {
