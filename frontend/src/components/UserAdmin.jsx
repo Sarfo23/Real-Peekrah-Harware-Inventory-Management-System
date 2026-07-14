@@ -778,6 +778,19 @@ const UserAdmin = () => {
             color: white !important;
             border-color: var(--hw-orange) !important;
           }
+          .table-responsive {
+            max-width: 100% !important;
+            display: block !important;
+            -webkit-overflow-scrolling: touch !important;
+            box-sizing: border-box !important;
+          }
+          .logs-table-container {
+            overflow-x: auto !important;
+            max-width: 100% !important;
+            display: block !important;
+            -webkit-overflow-scrolling: touch !important;
+            box-sizing: border-box !important;
+          }
         }
 
         .user-admin-grid {
@@ -914,11 +927,7 @@ const UserAdmin = () => {
         /* User List table */
         .table-responsive {
           width: 100%;
-          max-width: 100%;
           overflow-x: auto;
-          display: block;
-          -webkit-overflow-scrolling: touch;
-          box-sizing: border-box;
         }
 
         .user-table {
@@ -1092,12 +1101,6 @@ const UserAdmin = () => {
         .logs-table-container {
           max-height: 480px;
           overflow-y: auto;
-          overflow-x: auto;
-          width: 100%;
-          max-width: 100%;
-          display: block;
-          -webkit-overflow-scrolling: touch;
-          box-sizing: border-box;
         }
 
         .logs-table th {

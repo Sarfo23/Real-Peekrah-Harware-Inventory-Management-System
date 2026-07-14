@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hims-cache-v7';
+const CACHE_NAME = 'hims-cache-v8';
 
 // Install event - caching basic shell
 self.addEventListener('install', event => {
