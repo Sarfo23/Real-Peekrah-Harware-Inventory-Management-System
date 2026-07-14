@@ -23,10 +23,15 @@ const searchProducts = async (req, res) => {
         c.name as category_name,
         p.low_stock_threshold,
         COALESCE(SUM(i.quantity), 0) as total_quantity,
-        IF(COALESCE(SUM(i.quantity), 0) < p.low_stock_threshold, 1, 0) as is_low_stock
+        IF(COALESCE(SUM(i.quantity), 0) < p.low_stock_threshold, 1, 0) as is_low_stock,
+        GROUP_CONCAT(
+          CONCAT(w.id, '::', w.name, '::', w.type, '::', COALESCE(w.location, ''), '::', COALESCE(i.quantity, 0))
+          SEPARATOR ';;'
+        ) as location_distribution
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN inventory i ON p.id = i.product_id
+      LEFT JOIN warehouses w ON i.warehouse_id = w.id
       WHERE (p.name LIKE ? OR p.sku LIKE ?) AND p.is_decommissioned = 0
       GROUP BY p.id
     `, [`%${query}%`, `%${query}%`]);

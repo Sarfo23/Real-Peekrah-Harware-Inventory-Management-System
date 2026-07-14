@@ -500,7 +500,7 @@ function App() {
                 )}
               </>
             )}
-            {currentView === 'dashboard' && (
+            {user && (
               <button 
                 className="bell-btn search-trigger-btn"
                 onClick={() => setSearchOpen(true)}
