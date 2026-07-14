@@ -2294,6 +2294,73 @@ function App() {
             gap: 1.5rem !important;
           }
 
+          /* UserAdmin component mobile styling overrides */
+          .sub-tabs-header {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            border-bottom: none !important;
+            padding-bottom: 8px !important;
+            width: 100% !important;
+          }
+          
+          .sub-tab-btn {
+            flex: 0 1 auto !important;
+            border: 1px solid var(--hw-border) !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+            background-color: var(--hw-panel-bg) !important;
+            white-space: nowrap !important;
+            font-size: 11px !important;
+            cursor: pointer;
+            transition: all 0.2s ease !important;
+            color: var(--hw-steel) !important;
+          }
+          
+          .sub-tab-btn.active {
+            background-color: var(--hw-orange) !important;
+            color: white !important;
+            border-color: var(--hw-orange) !important;
+          }
+
+          .user-form-panel, .users-list-panel, .footprints-logs-panel {
+            padding: 12px !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
+
+          .logs-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            text-align: center !important;
+            gap: 12px !important;
+          }
+
+          .toolbar-actions {
+            justify-content: center !important;
+            width: 100% !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+
+          .logs-search, .logs-filter {
+            width: 100% !important;
+          }
+
+          .logs-table-container {
+            max-height: 480px !important;
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            -webkit-overflow-scrolling: touch !important;
+            box-sizing: border-box !important;
+          }
+
           .hardware-col {
             gap: 1.5rem !important;
           }
