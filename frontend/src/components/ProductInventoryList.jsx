@@ -892,6 +892,7 @@ const ProductInventoryList = ({ preselectedProductId, onClearPreselected }) => {
         }
         .ref-table {
           width: 100%;
+          min-width: 750px;
           font-size: 12px;
           border-collapse: collapse;
           text-align: left;
