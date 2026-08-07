@@ -301,13 +301,13 @@ const bulkStockMovements = async (req, res, db) => {
       const { productName, name, sku, categoryName, costPrice, sellingPrice, lowStockThreshold, warehouseName, type, quantity, userId } = item;
       const finalUserId = userId || (req.user ? req.user.id : 1);
 
-      const targetProdName = (productName || name || '').trim();
+      const targetProdName = String(productName || name || '').trim().replace(/\s+/g, ' ');
       if (!targetProdName) {
         errors.push(`Row ${rowNum}: Product Name is required.`);
         continue;
       }
 
-      const targetWarehouseName = (warehouseName || '').trim();
+      const targetWarehouseName = String(warehouseName || '').trim().replace(/\s+/g, ' ');
       if (!targetWarehouseName) {
         errors.push(`Row ${rowNum}: Warehouse or Shop name is required.`);
         continue;
@@ -318,7 +318,8 @@ const bulkStockMovements = async (req, res, db) => {
         continue;
       }
 
-      if (!['IN', 'OUT'].includes(type.toUpperCase())) {
+      const typeVal = String(type).trim().toUpperCase();
+      if (!['IN', 'OUT'].includes(typeVal)) {
         errors.push(`Row ${rowNum}: Type must be IN or OUT.`);
         continue;
       }
@@ -395,8 +396,8 @@ const bulkStockMovements = async (req, res, db) => {
       }
 
       // Check Shop restriction for Sales
-      const isSale = (type.toUpperCase() === 'OUT' && warehouseType === 'SHOP') ? 1 : 0;
-      if (type.toUpperCase() === 'OUT' && isSale === 0 && warehouseType !== 'SHOP') {
+      const isSale = (typeVal === 'OUT' && warehouseType === 'SHOP') ? 1 : 0;
+      if (typeVal === 'OUT' && isSale === 0 && warehouseType !== 'SHOP') {
         // Allow outbound movements from warehouse as well, but only if they have enough stock.
       }
 
@@ -408,9 +409,9 @@ const bulkStockMovements = async (req, res, db) => {
 
       let currentQty = invRows.length > 0 ? invRows[0].quantity : 0;
 
-      if (type.toUpperCase() === 'OUT') {
+      if (typeVal === 'OUT') {
         if (currentQty < movementQty) {
-          errors.push(`Row ${rowNum}: Insufficient stock in "${warehouseName}" for product "${productName}". Available: ${currentQty}, Requested: ${movementQty}.`);
+          errors.push(`Row ${rowNum}: Insufficient stock in "${targetWarehouseName}" for product "${targetProdName}". Available: ${currentQty}, Requested: ${movementQty}.`);
           continue;
         }
         currentQty -= movementQty;
@@ -434,7 +435,7 @@ const bulkStockMovements = async (req, res, db) => {
       // Record transaction
       await connection.execute(
         'INSERT INTO transactions (product_id, warehouse_id, type, quantity, user_id, is_sale) VALUES (?, ?, ?, ?, ?, ?)',
-        [productId, warehouseId, type.toUpperCase(), movementQty, parseInt(finalUserId) || 1, isSale]
+        [productId, warehouseId, typeVal, movementQty, parseInt(finalUserId) || 1, isSale]
       );
 
       // Update cumulative quantity

@@ -332,9 +332,18 @@ const bulkCreateProducts = async (req, res) => {
     for (let i = 0; i < productsList.length; i++) {
       const item = productsList[i];
       const rowNum = i + 1;
-      const { name, sku, categoryName, costPrice, sellingPrice, lowStockThreshold, warehouseName, quantity } = item;
 
-      if (!name || !sku || !categoryName) {
+      // Sanitize input values
+      const nameVal = String(item.name || '').trim().replace(/\s+/g, ' ');
+      const skuVal = String(item.sku || '').trim().replace(/\s+/g, '');
+      const categoryNameVal = String(item.categoryName || '').trim().replace(/\s+/g, ' ');
+      const warehouseNameVal = String(item.warehouseName || '').trim().replace(/\s+/g, ' ');
+      const costPriceVal = parseFloat(item.costPrice) || 0.00;
+      const sellingPriceVal = parseFloat(item.sellingPrice) || 0.00;
+      const lowStockThresholdVal = parseInt(item.lowStockThreshold) || 10;
+      const quantityVal = parseInt(item.quantity) || 0;
+
+      if (!nameVal || !skuVal || !categoryNameVal) {
         errors.push(`Row ${rowNum}: Name, SKU, and Category Name are required.`);
         skippedCount++;
         continue;
@@ -343,11 +352,11 @@ const bulkCreateProducts = async (req, res) => {
       // Prevent duplicate product names in catalog since SKU is no longer unique
       const [existing] = await connection.execute(
         'SELECT id FROM products WHERE name = ? AND is_decommissioned = 0',
-        [name.trim()]
+        [nameVal]
       );
 
       if (existing.length > 0) {
-        errors.push(`Row ${rowNum}: Product "${name}" already exists in the catalog. Skipping.`);
+        errors.push(`Row ${rowNum}: Product "${nameVal}" already exists in the catalog. Skipping.`);
         skippedCount++;
         continue;
       }
@@ -356,7 +365,7 @@ const bulkCreateProducts = async (req, res) => {
       let categoryId = null;
       const [catRows] = await connection.execute(
         'SELECT id FROM categories WHERE name = ?',
-        [categoryName.trim()]
+        [categoryNameVal]
       );
 
       if (catRows.length > 0) {
@@ -364,37 +373,34 @@ const bulkCreateProducts = async (req, res) => {
       } else {
         const [catResult] = await connection.execute(
           'INSERT INTO categories (name) VALUES (?)',
-          [categoryName.trim()]
+          [categoryNameVal]
         );
         categoryId = catResult.insertId;
       }
-
-      const initialQty = parseInt(quantity) || 0;
 
       // Insert product using the exact UMO string provided in the sheet (e.g. PCS, BX)
       const [productResult] = await connection.execute(
         'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold, cumulative_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
-          name.trim(),
-          sku.trim(),
+          nameVal,
+          skuVal,
           categoryId,
-          parseFloat(costPrice) || 0.00,
-          parseFloat(sellingPrice) || 0.00,
-          parseInt(lowStockThreshold) || 10,
-          initialQty
+          costPriceVal,
+          sellingPriceVal,
+          lowStockThresholdVal,
+          quantityVal
         ]
       );
       const newProductId = productResult.insertId;
 
       // If initial warehouse and positive quantity are provided, record initial allocation
-      if (warehouseName && warehouseName.trim() !== '' && initialQty > 0) {
-        const wName = warehouseName.trim();
+      if (warehouseNameVal && quantityVal > 0) {
         let warehouseId = null;
 
         // Check if warehouse already exists
         const [wareRows] = await connection.execute(
           'SELECT id FROM warehouses WHERE name = ?',
-          [wName]
+          [warehouseNameVal]
         );
 
         if (wareRows.length > 0) {
@@ -403,7 +409,7 @@ const bulkCreateProducts = async (req, res) => {
           // Create warehouse dynamically if not found
           const [wareResult] = await connection.execute(
             'INSERT INTO warehouses (name, type, location) VALUES (?, ?, ?)',
-            [wName, 'WAREHOUSE', '']
+            [warehouseNameVal, 'WAREHOUSE', '']
           );
           warehouseId = wareResult.insertId;
         }
@@ -411,13 +417,13 @@ const bulkCreateProducts = async (req, res) => {
         // Insert initial inventory record
         await connection.execute(
           'INSERT INTO inventory (product_id, warehouse_id, quantity) VALUES (?, ?, ?)',
-          [newProductId, warehouseId, initialQty]
+          [newProductId, warehouseId, quantityVal]
         );
 
         // Record initial IN transaction
         await connection.execute(
           'INSERT INTO transactions (product_id, warehouse_id, type, quantity, user_id) VALUES (?, ?, ?, ?, ?)',
-          [newProductId, warehouseId, 'IN', initialQty, req.user ? req.user.id : 1]
+          [newProductId, warehouseId, 'IN', quantityVal, req.user ? req.user.id : 1]
         );
       }
 

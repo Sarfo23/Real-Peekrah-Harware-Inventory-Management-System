@@ -19,22 +19,26 @@ const BulkImporter = ({ onImportComplete }) => {
     const normalized = {};
     const keys = Object.keys(row);
 
+    const cleanStr = (val) => String(val !== undefined && val !== null ? val : '').trim().replace(/\s+/g, ' ');
+    const cleanSku = (val) => String(val !== undefined && val !== null ? val : '').trim().replace(/\s+/g, '');
+
     keys.forEach(k => {
       const lowerK = k.toLowerCase().replace(/[\s_-]/g, '');
       // Check 'warehouse' / 'location' first to avoid collision with 'name' (e.g. 'Warehouse Name')
       if (lowerK.includes('warehouse') || lowerK.includes('location') || lowerK.includes('shop')) {
-        normalized.warehouseName = row[k];
+        normalized.warehouseName = cleanStr(row[k]);
       }
       // Check 'category' first to avoid collision with 'name' (e.g. 'Category Name')
       else if (lowerK.includes('category')) {
-        normalized.categoryName = row[k];
+        normalized.categoryName = cleanStr(row[k]);
       }
       else if (lowerK.includes('productname') || lowerK.includes('product') || lowerK.includes('name')) {
-        normalized.name = row[k];
-        normalized.productName = row[k];
+        const cleaned = cleanStr(row[k]);
+        normalized.name = cleaned;
+        normalized.productName = cleaned;
       }
       else if (lowerK.includes('umo') || lowerK.includes('sku')) {
-        normalized.sku = String(row[k]);
+        normalized.sku = cleanSku(row[k]);
       }
       else if (lowerK.includes('cost')) {
         normalized.costPrice = parseFloat(row[k]) || 0;
@@ -49,7 +53,7 @@ const BulkImporter = ({ onImportComplete }) => {
         normalized.quantity = parseInt(row[k]) || 0;
       }
       else if (lowerK.includes('type')) {
-        normalized.type = String(row[k]).toUpperCase();
+        normalized.type = cleanSku(row[k]).toUpperCase();
       }
       else if (lowerK.includes('user')) {
         normalized.userId = parseInt(row[k]) || 1;
