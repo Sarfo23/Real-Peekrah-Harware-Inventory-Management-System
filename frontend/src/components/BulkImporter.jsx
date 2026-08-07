@@ -141,8 +141,8 @@ const BulkImporter = ({ onImportComplete }) => {
             if (!item.name) localErrors.push(`Row ${rowNum}: Product Name is missing.`);
             if (!item.sku) localErrors.push(`Row ${rowNum}: UMO (Pieces or Boxes) is missing.`);
             if (!item.categoryName) localErrors.push(`Row ${rowNum}: Category Name is missing.`);
-            if (item.warehouseName && (!item.quantity || item.quantity <= 0)) {
-              localErrors.push(`Row ${rowNum}: Quantity must be a positive integer when Warehouse is specified.`);
+            if (item.quantity < 0) {
+              localErrors.push(`Row ${rowNum}: Quantity cannot be negative.`);
             }
             if (item.quantity > 0 && !item.warehouseName) {
               localErrors.push(`Row ${rowNum}: Warehouse Name is missing when Quantity is specified.`);
