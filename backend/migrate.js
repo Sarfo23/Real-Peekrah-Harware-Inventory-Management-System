@@ -140,8 +140,36 @@ const runMigration = async () => {
         'ALTER TABLE products ADD COLUMN is_decommissioned TINYINT(1) NOT NULL DEFAULT 0'
       );
       console.log('is_decommissioned column added successfully.');
-    } else {
-      console.log('is_decommissioned column already exists in products.');
+    }
+
+    // 3.2 Drop UNIQUE constraint on products.sku to allow repeated UMO values (like PCS, BX)
+    console.log('Checking database table products for unique SKU constraint...');
+    try {
+      const [skuIndexes] = await connection.execute(`
+        SELECT INDEX_NAME 
+        FROM information_schema.STATISTICS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'products' 
+          AND COLUMN_NAME = 'sku' 
+          AND NON_UNIQUE = 0
+      `);
+
+      if (skuIndexes.length > 0) {
+        for (const row of skuIndexes) {
+          const indexName = row.INDEX_NAME;
+          console.log(`Dropping unique index '${indexName}' on products.sku...`);
+          try {
+            await connection.execute(`ALTER TABLE products DROP INDEX \`${indexName}\``);
+            console.log(`Unique index '${indexName}' dropped successfully.`);
+          } catch (err) {
+            console.error(`Failed to drop unique index '${indexName}':`, err.message);
+          }
+        }
+      } else {
+        console.log('No unique constraint on products.sku found.');
+      }
+    } catch (err) {
+      console.error('Error checking unique index on products.sku:', err.message);
     }
 
     // 4. Add foreign key constraint for user_id to transactions table

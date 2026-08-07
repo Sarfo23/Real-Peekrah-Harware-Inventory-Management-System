@@ -340,28 +340,16 @@ const bulkCreateProducts = async (req, res) => {
         continue;
       }
 
-      // Generate a unique descriptive SKU using name slug and UMO (which is in item.sku)
-      const baseSku = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      const umoVal = (sku || 'PCS').trim().toUpperCase();
-      let skuVal = `${baseSku}-${umoVal}`;
+      // Prevent duplicate product names in catalog since SKU is no longer unique
+      const [existing] = await connection.execute(
+        'SELECT id FROM products WHERE name = ? AND is_decommissioned = 0',
+        [name.trim()]
+      );
 
-      // Limit length to fit database constraint VARCHAR(100)
-      if (skuVal.length > 90) {
-        skuVal = skuVal.substring(0, 90);
-      }
-
-      let finalSku = skuVal;
-      let suffix = 1;
-      while (true) {
-        const [existing] = await connection.execute(
-          'SELECT id FROM products WHERE sku = ?',
-          [finalSku]
-        );
-        if (existing.length === 0) {
-          break;
-        }
-        finalSku = `${skuVal}-${suffix}`;
-        suffix++;
+      if (existing.length > 0) {
+        errors.push(`Row ${rowNum}: Product "${name}" already exists in the catalog. Skipping.`);
+        skippedCount++;
+        continue;
       }
 
       // Get or create category
@@ -383,12 +371,12 @@ const bulkCreateProducts = async (req, res) => {
 
       const initialQty = parseInt(quantity) || 0;
 
-      // Insert product
+      // Insert product using the exact UMO string provided in the sheet (e.g. PCS, BX)
       const [productResult] = await connection.execute(
         'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold, cumulative_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           name.trim(),
-          finalSku,
+          sku.trim(),
           categoryId,
           parseFloat(costPrice) || 0.00,
           parseFloat(sellingPrice) || 0.00,

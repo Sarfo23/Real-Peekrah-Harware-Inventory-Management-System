@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    sku VARCHAR(100) NOT NULL UNIQUE,
+    sku VARCHAR(100) NOT NULL,
     category_id INT,
     low_stock_threshold INT NOT NULL DEFAULT 10,
     quantity INT NOT NULL DEFAULT 0,
