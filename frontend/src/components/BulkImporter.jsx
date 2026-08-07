@@ -22,9 +22,10 @@ const BulkImporter = ({ onImportComplete }) => {
     if (type === 'products') {
       keys.forEach(k => {
         const lowerK = k.toLowerCase().replace(/[\s_-]/g, '');
-        if (lowerK.includes('name')) normalized.name = row[k];
+        // Check 'category' first to avoid collision with 'name' (e.g. 'Category Name')
+        if (lowerK.includes('category')) normalized.categoryName = row[k];
+        else if (lowerK.includes('name')) normalized.name = row[k];
         else if (lowerK.includes('umo') || lowerK.includes('sku')) normalized.sku = String(row[k]);
-        else if (lowerK.includes('category')) normalized.categoryName = row[k];
         else if (lowerK.includes('cost')) normalized.costPrice = parseFloat(row[k]) || 0;
         else if (lowerK.includes('sell')) normalized.sellingPrice = parseFloat(row[k]) || 0;
         else if (lowerK.includes('threshold') || lowerK.includes('limit') || lowerK.includes('low')) {
@@ -38,8 +39,9 @@ const BulkImporter = ({ onImportComplete }) => {
     } else {
       keys.forEach(k => {
         const lowerK = k.toLowerCase().replace(/[\s_-]/g, '');
-        if (lowerK.includes('productname') || lowerK.includes('product') || lowerK.includes('name')) normalized.productName = row[k];
-        else if (lowerK.includes('warehouse') || lowerK.includes('location') || lowerK.includes('shop')) normalized.warehouseName = row[k];
+        // Check 'warehouse' / 'location' first to avoid collision with 'name' (e.g. 'Warehouse Name')
+        if (lowerK.includes('warehouse') || lowerK.includes('location') || lowerK.includes('shop')) normalized.warehouseName = row[k];
+        else if (lowerK.includes('productname') || lowerK.includes('product') || lowerK.includes('name')) normalized.productName = row[k];
         else if (lowerK.includes('type')) normalized.type = String(row[k]).toUpperCase();
         else if (lowerK.includes('qty') || lowerK.includes('quantity')) normalized.quantity = parseInt(row[k]) || 0;
         else if (lowerK.includes('user')) normalized.userId = parseInt(row[k]) || 1;
