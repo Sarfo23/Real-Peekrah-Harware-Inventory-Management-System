@@ -349,49 +349,51 @@ const bulkCreateProducts = async (req, res) => {
         continue;
       }
 
-      // Prevent duplicate product names in catalog since SKU is no longer unique
+      let productId = null;
+
+      // Check if product with this name already exists in catalog
       const [existing] = await connection.execute(
         'SELECT id FROM products WHERE name = ? AND is_decommissioned = 0',
         [nameVal]
       );
 
       if (existing.length > 0) {
-        errors.push(`Row ${rowNum}: Product "${nameVal}" already exists in the catalog. Skipping.`);
-        skippedCount++;
-        continue;
-      }
-
-      // Get or create category
-      let categoryId = null;
-      const [catRows] = await connection.execute(
-        'SELECT id FROM categories WHERE name = ?',
-        [categoryNameVal]
-      );
-
-      if (catRows.length > 0) {
-        categoryId = catRows[0].id;
+        // Product already exists, we will use it to assign stock details!
+        productId = existing[0].id;
       } else {
-        const [catResult] = await connection.execute(
-          'INSERT INTO categories (name) VALUES (?)',
+        // Get or create category
+        let categoryId = null;
+        const [catRows] = await connection.execute(
+          'SELECT id FROM categories WHERE name = ?',
           [categoryNameVal]
         );
-        categoryId = catResult.insertId;
-      }
 
-      // Insert product using the exact UMO string provided in the sheet (e.g. PCS, BX)
-      const [productResult] = await connection.execute(
-        'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold, cumulative_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-          nameVal,
-          skuVal,
-          categoryId,
-          costPriceVal,
-          sellingPriceVal,
-          lowStockThresholdVal,
-          quantityVal
-        ]
-      );
-      const newProductId = productResult.insertId;
+        if (catRows.length > 0) {
+          categoryId = catRows[0].id;
+        } else {
+          const [catResult] = await connection.execute(
+            'INSERT INTO categories (name) VALUES (?)',
+            [categoryNameVal]
+          );
+          categoryId = catResult.insertId;
+        }
+
+        // Insert product using the exact UMO string provided in the sheet (e.g. PCS, BX)
+        const [productResult] = await connection.execute(
+          'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold, cumulative_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            nameVal,
+            skuVal,
+            categoryId,
+            costPriceVal,
+            sellingPriceVal,
+            lowStockThresholdVal,
+            quantityVal
+          ]
+        );
+        productId = productResult.insertId;
+        createdCount++;
+      }
 
       // If initial warehouse and positive quantity are provided, record initial allocation
       if (warehouseNameVal && quantityVal > 0) {
@@ -414,20 +416,41 @@ const bulkCreateProducts = async (req, res) => {
           warehouseId = wareResult.insertId;
         }
 
-        // Insert initial inventory record
-        await connection.execute(
-          'INSERT INTO inventory (product_id, warehouse_id, quantity) VALUES (?, ?, ?)',
-          [newProductId, warehouseId, quantityVal]
+        // Check if inventory record for this product + warehouse already exists
+        const [invRows] = await connection.execute(
+          'SELECT quantity FROM inventory WHERE product_id = ? AND warehouse_id = ? FOR UPDATE',
+          [productId, warehouseId]
         );
+
+        if (invRows.length > 0) {
+          // If inventory already exists, increment the quantity
+          const newQty = invRows[0].quantity + quantityVal;
+          await connection.execute(
+            'UPDATE inventory SET quantity = ? WHERE product_id = ? AND warehouse_id = ?',
+            [newQty, productId, warehouseId]
+          );
+        } else {
+          // Insert initial inventory record
+          await connection.execute(
+            'INSERT INTO inventory (product_id, warehouse_id, quantity) VALUES (?, ?, ?)',
+            [productId, warehouseId, quantityVal]
+          );
+        }
 
         // Record initial IN transaction
         await connection.execute(
           'INSERT INTO transactions (product_id, warehouse_id, type, quantity, user_id) VALUES (?, ?, ?, ?, ?)',
-          [newProductId, warehouseId, 'IN', quantityVal, req.user ? req.user.id : 1]
+          [productId, warehouseId, 'IN', quantityVal, req.user ? req.user.id : 1]
         );
-      }
 
-      createdCount++;
+        // Update the product's cumulative_quantity if it was an existing product that we just added stock to
+        if (existing.length > 0) {
+          await connection.execute(
+            'UPDATE products SET cumulative_quantity = cumulative_quantity + ? WHERE id = ?',
+            [quantityVal, productId]
+          );
+        }
+      }
     }
 
     if (errors.length === productsList.length) {
