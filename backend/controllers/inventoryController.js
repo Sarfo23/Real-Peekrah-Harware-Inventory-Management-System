@@ -298,10 +298,22 @@ const bulkStockMovements = async (req, res, db) => {
     for (let i = 0; i < movementsList.length; i++) {
       const item = movementsList[i];
       const rowNum = i + 1;
-      const { productName, warehouseName, type, quantity, userId } = item;
+      const { productName, name, sku, categoryName, costPrice, sellingPrice, lowStockThreshold, warehouseName, type, quantity, userId } = item;
       const finalUserId = userId || (req.user ? req.user.id : 1);
 
-      if (!productName || !warehouseName || !type || !quantity || !finalUserId) {
+      const targetProdName = (productName || name || '').trim();
+      if (!targetProdName) {
+        errors.push(`Row ${rowNum}: Product Name is required.`);
+        continue;
+      }
+
+      const targetWarehouseName = (warehouseName || '').trim();
+      if (!targetWarehouseName) {
+        errors.push(`Row ${rowNum}: Warehouse or Shop name is required.`);
+        continue;
+      }
+
+      if (!type || !quantity || !finalUserId) {
         errors.push(`Row ${rowNum}: Product Name, Warehouse/Shop Name, Type, Quantity, and User ID are required.`);
         continue;
       }
@@ -317,30 +329,81 @@ const bulkStockMovements = async (req, res, db) => {
         continue;
       }
 
-      // Find product by Name
-      const [prodRows] = await connection.execute(
+      // Find or create product dynamically
+      let [prodRows] = await connection.execute(
         'SELECT id FROM products WHERE name = ? AND is_decommissioned = 0',
-        [productName.trim()]
+        [targetProdName]
       );
 
+      let productId;
       if (prodRows.length === 0) {
-        errors.push(`Row ${rowNum}: Product "${productName}" not found in system catalog.`);
-        continue;
-      }
-      const productId = prodRows[0].id;
+        const skuVal = (sku || `SKU-${targetProdName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`).trim();
+        const catNameVal = (categoryName || 'General').trim();
 
-      // Find warehouse/shop by name
-      const [wareRows] = await connection.execute(
+        // Check if SKU already exists to avoid unique SKU errors
+        const [existingSKU] = await connection.execute(
+          'SELECT id FROM products WHERE sku = ?',
+          [skuVal]
+        );
+
+        if (existingSKU.length > 0) {
+          errors.push(`Row ${rowNum}: Product "${targetProdName}" does not exist, but auto-generated SKU "${skuVal}" already exists. Please specify a unique SKU.`);
+          continue;
+        }
+
+        // Get or create category
+        let categoryId = null;
+        const [catRows] = await connection.execute(
+          'SELECT id FROM categories WHERE name = ?',
+          [catNameVal]
+        );
+
+        if (catRows.length > 0) {
+          categoryId = catRows[0].id;
+        } else {
+          const [catResult] = await connection.execute(
+            'INSERT INTO categories (name) VALUES (?)',
+            [catNameVal]
+          );
+          categoryId = catResult.insertId;
+        }
+
+        // Insert product
+        const [prodResult] = await connection.execute(
+          'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold) VALUES (?, ?, ?, ?, ?, ?)',
+          [
+            targetProdName,
+            skuVal,
+            categoryId,
+            parseFloat(costPrice) || 0.00,
+            parseFloat(sellingPrice) || 0.00,
+            parseInt(lowStockThreshold) || 10
+          ]
+        );
+        productId = prodResult.insertId;
+      } else {
+        productId = prodRows[0].id;
+      }
+
+      // Find or create warehouse dynamically
+      let [wareRows] = await connection.execute(
         'SELECT id, type FROM warehouses WHERE name = ?',
-        [warehouseName.trim()]
+        [targetWarehouseName]
       );
 
+      let warehouseId;
+      let warehouseType;
       if (wareRows.length === 0) {
-        errors.push(`Row ${rowNum}: Warehouse or Shop named "${warehouseName}" not found.`);
-        continue;
+        const [warehouseResult] = await connection.execute(
+          'INSERT INTO warehouses (name, type, location) VALUES (?, ?, ?)',
+          [targetWarehouseName, 'WAREHOUSE', '']
+        );
+        warehouseId = warehouseResult.insertId;
+        warehouseType = 'WAREHOUSE';
+      } else {
+        warehouseId = wareRows[0].id;
+        warehouseType = wareRows[0].type;
       }
-      const warehouseId = wareRows[0].id;
-      const warehouseType = wareRows[0].type;
 
       // Check Shop restriction for Sales
       const isSale = (type.toUpperCase() === 'OUT' && warehouseType === 'SHOP') ? 1 : 0;

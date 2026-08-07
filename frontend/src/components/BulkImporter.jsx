@@ -15,40 +15,77 @@ const BulkImporter = ({ onImportComplete }) => {
   const [validationErrors, setValidationErrors] = useState([]);
 
   // Helper to normalize keys to match backend expectations
-  const normalizeKeys = (row, type) => {
+  const normalizeKeys = (row) => {
     const normalized = {};
     const keys = Object.keys(row);
 
-    if (type === 'products') {
-      keys.forEach(k => {
-        const lowerK = k.toLowerCase().replace(/[\s_-]/g, '');
-        // Check 'category' first to avoid collision with 'name' (e.g. 'Category Name')
-        if (lowerK.includes('category')) normalized.categoryName = row[k];
-        else if (lowerK.includes('name')) normalized.name = row[k];
-        else if (lowerK.includes('umo') || lowerK.includes('sku')) normalized.sku = String(row[k]);
-        else if (lowerK.includes('cost')) normalized.costPrice = parseFloat(row[k]) || 0;
-        else if (lowerK.includes('sell')) normalized.sellingPrice = parseFloat(row[k]) || 0;
-        else if (lowerK.includes('threshold') || lowerK.includes('limit') || lowerK.includes('low')) {
-          normalized.lowStockThreshold = parseInt(row[k]) || 10;
-        }
-      });
-      // Fallbacks
-      if (!normalized.name) normalized.name = '';
-      if (!normalized.sku) normalized.sku = '';
-      if (!normalized.categoryName) normalized.categoryName = '';
-    } else {
-      keys.forEach(k => {
-        const lowerK = k.toLowerCase().replace(/[\s_-]/g, '');
-        // Check 'warehouse' / 'location' first to avoid collision with 'name' (e.g. 'Warehouse Name')
-        if (lowerK.includes('warehouse') || lowerK.includes('location') || lowerK.includes('shop')) normalized.warehouseName = row[k];
-        else if (lowerK.includes('productname') || lowerK.includes('product') || lowerK.includes('name')) normalized.productName = row[k];
-        else if (lowerK.includes('type')) normalized.type = String(row[k]).toUpperCase();
-        else if (lowerK.includes('qty') || lowerK.includes('quantity')) normalized.quantity = parseInt(row[k]) || 0;
-        else if (lowerK.includes('user')) normalized.userId = parseInt(row[k]) || 1;
-      });
-      if (!normalized.userId) normalized.userId = 1;
+    keys.forEach(k => {
+      const lowerK = k.toLowerCase().replace(/[\s_-]/g, '');
+      // Check 'warehouse' / 'location' first to avoid collision with 'name' (e.g. 'Warehouse Name')
+      if (lowerK.includes('warehouse') || lowerK.includes('location') || lowerK.includes('shop')) {
+        normalized.warehouseName = row[k];
+      }
+      // Check 'category' first to avoid collision with 'name' (e.g. 'Category Name')
+      else if (lowerK.includes('category')) {
+        normalized.categoryName = row[k];
+      }
+      else if (lowerK.includes('productname') || lowerK.includes('product') || lowerK.includes('name')) {
+        normalized.name = row[k];
+        normalized.productName = row[k];
+      }
+      else if (lowerK.includes('umo') || lowerK.includes('sku')) {
+        normalized.sku = String(row[k]);
+      }
+      else if (lowerK.includes('cost')) {
+        normalized.costPrice = parseFloat(row[k]) || 0;
+      }
+      else if (lowerK.includes('sell')) {
+        normalized.sellingPrice = parseFloat(row[k]) || 0;
+      }
+      else if (lowerK.includes('threshold') || lowerK.includes('limit') || lowerK.includes('low')) {
+        normalized.lowStockThreshold = parseInt(row[k]) || 10;
+      }
+      else if (lowerK.includes('qty') || lowerK.includes('quantity')) {
+        normalized.quantity = parseInt(row[k]) || 0;
+      }
+      else if (lowerK.includes('type')) {
+        normalized.type = String(row[k]).toUpperCase();
+      }
+      else if (lowerK.includes('user')) {
+        normalized.userId = parseInt(row[k]) || 1;
+      }
+    });
+
+    // Fallbacks & defaults
+    if (!normalized.name) {
+      normalized.name = '';
+      normalized.productName = '';
     }
+    if (!normalized.sku) normalized.sku = '';
+    if (!normalized.categoryName) normalized.categoryName = '';
+    if (!normalized.warehouseName) normalized.warehouseName = '';
+    if (normalized.quantity === undefined) normalized.quantity = 0;
+    if (!normalized.type) {
+      normalized.type = normalized.quantity > 0 ? 'IN' : '';
+    }
+    if (!normalized.userId) normalized.userId = 1;
+
     return normalized;
+  };
+
+  const getHeaderLabel = (h) => {
+    const labels = {
+      name: 'Product Name',
+      sku: 'UMO / SKU',
+      categoryName: 'Category',
+      costPrice: 'Cost Price',
+      sellingPrice: 'Selling Price',
+      lowStockThreshold: 'Low Stock Threshold',
+      warehouseName: 'Warehouse / Location',
+      quantity: 'Quantity',
+      type: 'Type'
+    };
+    return labels[h] || h;
   };
 
   const handleFileChange = (e) => {
@@ -77,10 +114,23 @@ const BulkImporter = ({ onImportComplete }) => {
         }
 
         // Normalize keys
-        const processed = rawRows.map(row => normalizeKeys(row, importType));
+        const processed = rawRows.map(row => normalizeKeys(row));
         
-        // Extract headers from first processed item
-        setHeaders(Object.keys(processed[0]));
+        // Determine which headers to show in preview
+        const order = ['name', 'sku', 'categoryName', 'costPrice', 'sellingPrice', 'lowStockThreshold', 'warehouseName', 'quantity', 'type'];
+        const activeHeaders = order.filter(key => {
+          return processed.some(row => {
+            const val = row[key];
+            if (key === 'type') return val === 'IN' || val === 'OUT';
+            if (key === 'lowStockThreshold') return val !== 10 && val !== '';
+            if (key === 'costPrice' || key === 'sellingPrice') return val !== 0 && val !== '';
+            if (key === 'quantity') return val !== 0 && val !== '';
+            return val !== undefined && val !== '';
+          });
+        });
+        if (!activeHeaders.includes('name')) activeHeaders.unshift('name');
+        
+        setHeaders(activeHeaders);
         setPreviewData(processed);
 
         // Basic front-end verification
@@ -91,8 +141,14 @@ const BulkImporter = ({ onImportComplete }) => {
             if (!item.name) localErrors.push(`Row ${rowNum}: Product Name is missing.`);
             if (!item.sku) localErrors.push(`Row ${rowNum}: UMO (Pieces or Boxes) is missing.`);
             if (!item.categoryName) localErrors.push(`Row ${rowNum}: Category Name is missing.`);
+            if (item.warehouseName && (!item.quantity || item.quantity <= 0)) {
+              localErrors.push(`Row ${rowNum}: Quantity must be a positive integer when Warehouse is specified.`);
+            }
+            if (item.quantity > 0 && !item.warehouseName) {
+              localErrors.push(`Row ${rowNum}: Warehouse Name is missing when Quantity is specified.`);
+            }
           } else {
-            if (!item.productName) localErrors.push(`Row ${rowNum}: Product Name is missing.`);
+            if (!item.name) localErrors.push(`Row ${rowNum}: Product Name is missing.`);
             if (!item.warehouseName) localErrors.push(`Row ${rowNum}: Warehouse or Shop name is missing.`);
             if (!item.type || !['IN', 'OUT'].includes(item.type)) {
               localErrors.push(`Row ${rowNum}: Type must be either "IN" or "OUT" (got "${item.type || ''}").`);
@@ -271,7 +327,7 @@ const BulkImporter = ({ onImportComplete }) => {
               <thead>
                 <tr>
                   {headers.map(h => (
-                    <th key={h}>{h}</th>
+                    <th key={h}>{getHeaderLabel(h)}</th>
                   ))}
                 </tr>
               </thead>

@@ -332,7 +332,7 @@ const bulkCreateProducts = async (req, res) => {
     for (let i = 0; i < productsList.length; i++) {
       const item = productsList[i];
       const rowNum = i + 1;
-      const { name, sku, categoryName, costPrice, sellingPrice, lowStockThreshold } = item;
+      const { name, sku, categoryName, costPrice, sellingPrice, lowStockThreshold, warehouseName, quantity } = item;
 
       if (!name || !sku || !categoryName) {
         errors.push(`Row ${rowNum}: Name, SKU, and Category Name are required.`);
@@ -369,18 +369,58 @@ const bulkCreateProducts = async (req, res) => {
         categoryId = catResult.insertId;
       }
 
+      const initialQty = parseInt(quantity) || 0;
+
       // Insert product
-      await connection.execute(
-        'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold) VALUES (?, ?, ?, ?, ?, ?)',
+      const [productResult] = await connection.execute(
+        'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold, cumulative_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           name.trim(),
           sku.trim(),
           categoryId,
           parseFloat(costPrice) || 0.00,
           parseFloat(sellingPrice) || 0.00,
-          parseInt(lowStockThreshold) || 10
+          parseInt(lowStockThreshold) || 10,
+          initialQty
         ]
       );
+      const newProductId = productResult.insertId;
+
+      // If initial warehouse and positive quantity are provided, record initial allocation
+      if (warehouseName && warehouseName.trim() !== '' && initialQty > 0) {
+        const wName = warehouseName.trim();
+        let warehouseId = null;
+
+        // Check if warehouse already exists
+        const [wareRows] = await connection.execute(
+          'SELECT id FROM warehouses WHERE name = ?',
+          [wName]
+        );
+
+        if (wareRows.length > 0) {
+          warehouseId = wareRows[0].id;
+        } else {
+          // Create warehouse dynamically if not found
+          const [wareResult] = await connection.execute(
+            'INSERT INTO warehouses (name, type, location) VALUES (?, ?, ?)',
+            [wName, 'WAREHOUSE', '']
+          );
+          warehouseId = wareResult.insertId;
+        }
+
+        // Insert initial inventory record
+        await connection.execute(
+          'INSERT INTO inventory (product_id, warehouse_id, quantity) VALUES (?, ?, ?)',
+          [newProductId, warehouseId, initialQty]
+        );
+
+        // Record initial IN transaction
+        await connection.execute(
+          'INSERT INTO transactions (product_id, warehouse_id, type, quantity, user_id) VALUES (?, ?, ?, ?, ?)',
+          [newProductId, warehouseId, 'IN', initialQty, req.user ? req.user.id : 1]
+        );
+      }
+
       createdCount++;
     }
 
