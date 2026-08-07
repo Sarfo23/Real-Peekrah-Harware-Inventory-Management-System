@@ -340,16 +340,28 @@ const bulkCreateProducts = async (req, res) => {
         continue;
       }
 
-      // Check if SKU already exists
-      const [existing] = await connection.execute(
-        'SELECT id FROM products WHERE sku = ?',
-        [sku.trim()]
-      );
+      // Generate a unique descriptive SKU using name slug and UMO (which is in item.sku)
+      const baseSku = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const umoVal = (sku || 'PCS').trim().toUpperCase();
+      let skuVal = `${baseSku}-${umoVal}`;
 
-      if (existing.length > 0) {
-        errors.push(`Row ${rowNum}: SKU "${sku}" already exists. Skipping.`);
-        skippedCount++;
-        continue;
+      // Limit length to fit database constraint VARCHAR(100)
+      if (skuVal.length > 90) {
+        skuVal = skuVal.substring(0, 90);
+      }
+
+      let finalSku = skuVal;
+      let suffix = 1;
+      while (true) {
+        const [existing] = await connection.execute(
+          'SELECT id FROM products WHERE sku = ?',
+          [finalSku]
+        );
+        if (existing.length === 0) {
+          break;
+        }
+        finalSku = `${skuVal}-${suffix}`;
+        suffix++;
       }
 
       // Get or create category
@@ -376,7 +388,7 @@ const bulkCreateProducts = async (req, res) => {
         'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold, cumulative_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           name.trim(),
-          sku.trim(),
+          finalSku,
           categoryId,
           parseFloat(costPrice) || 0.00,
           parseFloat(sellingPrice) || 0.00,

@@ -337,19 +337,29 @@ const bulkStockMovements = async (req, res, db) => {
 
       let productId;
       if (prodRows.length === 0) {
-        const skuVal = (sku || `SKU-${targetProdName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`).trim();
-        const catNameVal = (categoryName || 'General').trim();
+        const baseSku = targetProdName.toUpperCase().replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        const umoVal = (sku || 'PCS').trim().toUpperCase();
+        let skuVal = `${baseSku}-${umoVal}`;
 
-        // Check if SKU already exists to avoid unique SKU errors
-        const [existingSKU] = await connection.execute(
-          'SELECT id FROM products WHERE sku = ?',
-          [skuVal]
-        );
-
-        if (existingSKU.length > 0) {
-          errors.push(`Row ${rowNum}: Product "${targetProdName}" does not exist, but auto-generated SKU "${skuVal}" already exists. Please specify a unique SKU.`);
-          continue;
+        if (skuVal.length > 90) {
+          skuVal = skuVal.substring(0, 90);
         }
+
+        let finalSku = skuVal;
+        let suffix = 1;
+        while (true) {
+          const [existing] = await connection.execute(
+            'SELECT id FROM products WHERE sku = ?',
+            [finalSku]
+          );
+          if (existing.length === 0) {
+            break;
+          }
+          finalSku = `${skuVal}-${suffix}`;
+          suffix++;
+        }
+
+        const catNameVal = (categoryName || 'General').trim();
 
         // Get or create category
         let categoryId = null;
@@ -373,7 +383,7 @@ const bulkStockMovements = async (req, res, db) => {
           'INSERT INTO products (name, sku, category_id, cost_price, selling_price, low_stock_threshold) VALUES (?, ?, ?, ?, ?, ?)',
           [
             targetProdName,
-            skuVal,
+            finalSku,
             categoryId,
             parseFloat(costPrice) || 0.00,
             parseFloat(sellingPrice) || 0.00,
