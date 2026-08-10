@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * StockMovementForm Component
@@ -24,6 +24,30 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
   const [inputUnit, setInputUnit] = useState('PCS'); // 'PCS' or 'BX'
   const [numBoxes, setNumBoxes] = useState(1);
   const [qtyPerBox, setQtyPerBox] = useState(10);
+
+  // Searchable Product Dropdown States and Refs
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Autofocus the search input when dropdown opens
+  useEffect(() => {
+    if (isDropdownOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isDropdownOpen]);
 
   // Fetch initial data for dropdowns
   useEffect(() => {
@@ -187,14 +211,71 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
     <div className="stock-movement-form">
       <h3>Record Stock Movement</h3>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
+        <div className="form-group" ref={dropdownRef}>
           <label>Product</label>
-          <select name="productId" value={formData.productId} onChange={handleChange} required>
-            <option value="">Select Product...</option>
-            {products.map(p => (
-              <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
-            ))}
-          </select>
+          <div className="custom-select-container">
+            <div 
+              className={`custom-select-trigger ${isDropdownOpen ? 'active' : ''}`}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <span className="trigger-text">
+                {selectedProduct ? `${selectedProduct.name} (${selectedProduct.sku})` : 'Select Product...'}
+              </span>
+              <span className="trigger-arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+            </div>
+
+            {isDropdownOpen && (
+              <div className="custom-select-dropdown">
+                <div className="search-input-wrapper">
+                  <span className="search-icon">🔍</span>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className="dropdown-search-input"
+                    placeholder="Search by product name or SKU..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {productSearch && (
+                    <button 
+                      type="button" 
+                      className="clear-search-btn"
+                      onClick={(e) => { e.stopPropagation(); setProductSearch(''); }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <div className="dropdown-options-list">
+                  {products.filter(p => 
+                    (p.name && p.name.toLowerCase().includes(productSearch.toLowerCase())) ||
+                    (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase()))
+                  ).length > 0 ? (
+                    products.filter(p => 
+                      (p.name && p.name.toLowerCase().includes(productSearch.toLowerCase())) ||
+                      (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase()))
+                    ).map(p => (
+                      <div
+                        key={p.id}
+                        className={`dropdown-option ${Number(p.id) === Number(formData.productId) ? 'selected' : ''}`}
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, productId: p.id }));
+                          setIsDropdownOpen(false);
+                          setProductSearch('');
+                        }}
+                      >
+                        <span className="option-name">{p.name}</span>
+                        <span className="option-sku">{p.sku}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-options-found">No products matched "{productSearch}"</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="form-group">
@@ -301,6 +382,158 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
           padding: 8px;
           border: 1px solid #ccc;
           border-radius: 4px;
+        }
+        /* Custom Searchable Dropdown styles */
+        .custom-select-container {
+          position: relative;
+          width: 100%;
+        }
+        .custom-select-trigger {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          padding: 8px 12px;
+          background-color: var(--hw-panel-bg, #ffffff);
+          border: 1px solid var(--hw-border, #cbd5e1);
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          color: var(--hw-charcoal, #1e293b);
+          transition: border-color 0.2s, box-shadow 0.2s;
+          user-select: none;
+        }
+        .custom-select-trigger:hover {
+          border-color: var(--hw-orange, #f97316);
+        }
+        .custom-select-trigger.active {
+          border-color: var(--hw-orange, #f97316);
+          box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+        }
+        .trigger-text {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-right: 8px;
+          font-weight: 500;
+        }
+        .trigger-arrow {
+          font-size: 10px;
+          color: var(--hw-steel, #94a3b8);
+          transition: transform 0.2s;
+        }
+        .custom-select-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          margin-top: 4px;
+          background-color: var(--hw-panel-bg, #ffffff);
+          border: 1px solid var(--hw-border, #cbd5e1);
+          border-radius: 6px;
+          box-shadow: var(--hw-shadow, 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05));
+          z-index: 1000;
+          overflow: hidden;
+          animation: slideDown 0.15s ease-out;
+        }
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .search-input-wrapper {
+          display: flex;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 1px solid var(--hw-border, #e2e8f0);
+          background-color: var(--hw-bg-light, #f8fafc);
+          position: relative;
+        }
+        .search-icon {
+          font-size: 14px;
+          color: var(--hw-steel, #94a3b8);
+          margin-right: 8px;
+        }
+        .dropdown-search-input {
+          flex: 1;
+          border: none !important;
+          outline: none !important;
+          background: transparent !important;
+          padding: 4px 0 !important;
+          font-size: 13px !important;
+          color: var(--hw-charcoal, #1e293b) !important;
+          box-shadow: none !important;
+        }
+        .clear-search-btn {
+          background: none !important;
+          border: none !important;
+          color: var(--hw-steel, #94a3b8) !important;
+          cursor: pointer;
+          font-size: 16px !important;
+          padding: 0 4px !important;
+          width: auto !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .clear-search-btn:hover {
+          color: var(--hw-red, #ef4444) !important;
+        }
+        .dropdown-options-list {
+          max-height: 220px;
+          overflow-y: auto;
+        }
+        .dropdown-option {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 12px;
+          cursor: pointer;
+          font-size: 13px;
+          color: var(--hw-charcoal, #1e293b);
+          transition: background-color 0.15s;
+        }
+        .dropdown-option:hover {
+          background-color: var(--hw-bg-light, #f1f5f9);
+        }
+        .dropdown-option.selected {
+          background-color: rgba(249, 115, 22, 0.15);
+          color: var(--hw-orange, #f97316);
+          font-weight: 600;
+        }
+        .dropdown-option.selected:hover {
+          background-color: rgba(249, 115, 22, 0.2);
+        }
+        .option-name {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-right: 12px;
+        }
+        .option-sku {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--hw-steel, #64748b);
+          background-color: var(--hw-bg-light, #f1f5f9);
+          padding: 2px 6px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+        .dropdown-option.selected .option-sku {
+          color: var(--hw-orange, #f97316);
+          background-color: rgba(249, 115, 22, 0.15);
+        }
+        .no-options-found {
+          padding: 16px;
+          text-align: center;
+          color: var(--hw-steel, #64748b);
+          font-size: 13px;
+          font-style: italic;
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         @media (max-width: 480px) {
