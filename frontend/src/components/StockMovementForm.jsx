@@ -207,6 +207,8 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
     }
   };
 
+  const selectedProduct = products.find(p => Number(p.id) === Number(formData.productId));
+
   return (
     <div className="stock-movement-form">
       <h3>Record Stock Movement</h3>
