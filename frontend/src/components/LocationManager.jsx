@@ -130,6 +130,41 @@ const LocationManager = ({ onLocationAdded }) => {
     }
   };
 
+  const handleDeleteFacility = async () => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${editingFacility.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setEditLoading(true);
+    setEditMessage(null);
+
+    try {
+      const token = localStorage.getItem('hims_token');
+      const res = await fetch(`/api/warehouses/${editingFacility.id}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setEditMessage({ type: 'success', text: 'Facility deleted successfully!' });
+        fetchLocations();
+        if (onLocationAdded) onLocationAdded();
+        setTimeout(() => {
+          setEditingFacility(null);
+        }, 1000);
+      } else {
+        throw new Error(data.error || 'Failed to delete facility');
+      }
+    } catch (err) {
+      setEditMessage({ type: 'error', text: err.message });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   return (
     <div className="location-manager-container">
       <div className="manager-grid">
@@ -294,18 +329,30 @@ const LocationManager = ({ onLocationAdded }) => {
                 />
               </div>
 
-              <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button 
-                  type="button" 
-                  className="btn-submit" 
-                  style={{ backgroundColor: '#94a3b8', color: 'white' }} 
-                  onClick={() => setEditingFacility(null)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-submit" disabled={editLoading}>
-                  {editLoading ? 'Saving...' : 'Save Changes'}
-                </button>
+              <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                {isSuperAdmin && (
+                  <button 
+                    type="button" 
+                    className="btn-submit btn-delete-facility" 
+                    onClick={handleDeleteFacility}
+                    disabled={editLoading}
+                  >
+                    Delete Facility
+                  </button>
+                )}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    type="button" 
+                    className="btn-submit" 
+                    style={{ backgroundColor: '#94a3b8', color: 'white' }} 
+                    onClick={() => setEditingFacility(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-submit" disabled={editLoading}>
+                    {editLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -464,6 +511,12 @@ const LocationManager = ({ onLocationAdded }) => {
         }
         .btn-submit:hover {
           background-color: var(--hw-orange-hover) !important;
+        }
+        .btn-delete-facility {
+          background-color: #ef4444 !important;
+        }
+        .btn-delete-facility:hover {
+          background-color: #dc2626 !important;
         }
         
         .form-msg {

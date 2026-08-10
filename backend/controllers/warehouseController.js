@@ -116,11 +116,63 @@ const updateFacility = async (req, res) => {
   }
 };
 
+const deleteFacility = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1. Check if the facility exists
+    const [facility] = await db.execute('SELECT name, type FROM warehouses WHERE id = ?', [id]);
+    if (facility.length === 0) {
+      return res.status(404).json({ error: 'Facility not found' });
+    }
+    const { name, type } = facility[0];
+
+    // 2. Check if there is active inventory (quantity > 0)
+    const [invRows] = await db.execute(
+      'SELECT COALESCE(SUM(quantity), 0) as totalStock FROM inventory WHERE warehouse_id = ?',
+      [id]
+    );
+    if (invRows[0].totalStock > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete facility because it currently has active inventory stock. Please transfer or clear the stock first.'
+      });
+    }
+
+    // 3. Check for transaction logs
+    const [txRows] = await db.execute(
+      'SELECT COUNT(*) as txCount FROM transactions WHERE warehouse_id = ?',
+      [id]
+    );
+    if (txRows[0].txCount > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete facility because it has associated transaction history. It cannot be deleted to preserve audit trails.'
+      });
+    }
+
+    // 4. Delete zero-quantity inventory mappings to avoid constraint conflicts, then delete warehouse
+    await db.execute('DELETE FROM inventory WHERE warehouse_id = ?', [id]);
+    await db.execute('DELETE FROM warehouses WHERE id = ?', [id]);
+
+    // 5. Log footprint
+    await logFootprint(
+      req.user ? req.user.id : 1,
+      'DELETE_FACILITY',
+      `Permanently deleted facility: "${name}" (Type: ${type}, ID: ${id}).`
+    );
+
+    res.json({ message: 'Facility deleted successfully.' });
+  } catch (error) {
+    console.error('Delete Facility Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export default {
   getAllWarehouses,
   getAllShops,
   createWarehouse,
   createShop,
   getWarehouseInventory,
-  updateFacility
+  updateFacility,
+  deleteFacility
 };

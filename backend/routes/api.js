@@ -330,6 +330,7 @@ router.post('/warehouses', warehouseController.createWarehouse);
 router.get('/shops', warehouseController.getAllShops);
 router.post('/shops', warehouseController.createShop);
 router.put('/warehouses/:id', authorizeRoles('SUPER_ADMIN'), warehouseController.updateFacility);
+router.delete('/warehouses/:id', authorizeRoles('SUPER_ADMIN'), warehouseController.deleteFacility);
 router.get('/warehouses/:id/inventory', warehouseController.getWarehouseInventory);
 
 export default router;
