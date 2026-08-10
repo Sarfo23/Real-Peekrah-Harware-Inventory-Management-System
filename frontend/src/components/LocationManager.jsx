@@ -28,6 +28,51 @@ const LocationManager = ({ onLocationAdded }) => {
   const [editMessage, setEditMessage] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
 
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const refreshSearchResults = async (query, currentWarehouses, currentShops) => {
+    const q = query.toLowerCase();
+    const allFacs = [
+      ...currentWarehouses.map(w => ({ ...w, type: 'WAREHOUSE' })),
+      ...currentShops.map(s => ({ ...s, type: 'SHOP' }))
+    ];
+    const matches = allFacs.filter(fac => fac.name.toLowerCase().includes(q));
+
+    try {
+      const updatedMatches = await Promise.all(
+        matches.map(async (fac) => {
+          const res = await fetch(`/api/warehouses/${fac.id}/inventory`);
+          if (res.ok) {
+            const inventory = await res.json();
+            return { ...fac, inventory };
+          }
+          return { ...fac, inventory: [] };
+        })
+      );
+      setSearchResults(updatedMatches);
+    } catch (err) {
+      console.error('Error refreshing search results:', err);
+    }
+  };
+
+  const handleSearchSubmit = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    await refreshSearchResults(searchQuery, warehouses, shops);
+    setSearchLoading(false);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
   const handleEditClick = (fac, defaultType) => {
     setEditingFacility(fac);
     setEditName(fac.name);
@@ -44,8 +89,14 @@ const LocationManager = ({ onLocationAdded }) => {
         fetch('/api/shops')
       ]);
       if (!whRes.ok || !shopRes.ok) throw new Error('Failed to load locations');
-      setWarehouses(await whRes.json());
-      setShops(await shopRes.json());
+      const whData = await whRes.json();
+      const shopData = await shopRes.json();
+      setWarehouses(whData);
+      setShops(shopData);
+
+      if (searchQuery.trim() !== '') {
+        refreshSearchResults(searchQuery, whData, shopData);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -167,6 +218,85 @@ const LocationManager = ({ onLocationAdded }) => {
 
   return (
     <div className="location-manager-container">
+      {/* Facility Search Section */}
+      <div className="facility-search-section">
+        <h3>🔍 Real-Time Facility Inventory Search</h3>
+        <div className="search-bar-container">
+          <input
+            type="text"
+            className="facility-search-input"
+            placeholder="Type shop or warehouse name (e.g. Tema, Mall...)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSearchSubmit();
+            }}
+          />
+          <button className="btn-search" onClick={handleSearchSubmit} disabled={searchLoading}>
+            {searchLoading ? 'Scanning...' : 'Search Inventory'}
+          </button>
+          {searchResults.length > 0 && (
+            <button className="btn-clear-search" onClick={handleClearSearch}>
+              Clear
+            </button>
+          )}
+        </div>
+
+        {searchLoading && <p className="search-loading-text">🔄 Fetching warehouse inventory levels from Railway Cloud...</p>}
+
+        {!searchLoading && searchResults.length > 0 && (
+          <div className="search-results-container">
+            <h4>Search Results ({searchResults.length} matches found)</h4>
+            <div className="search-results-grid">
+              {searchResults.map((fac) => (
+                <div key={fac.id} className={`search-result-card ${fac.type === 'SHOP' ? 'shop-card' : 'wh-card'}`}>
+                  <div className="card-header">
+                    <span className="card-icon">{fac.type === 'SHOP' ? '🛒' : '🏭'}</span>
+                    <div className="card-header-details">
+                      <strong>{fac.name}</strong>
+                      <span>📍 {fac.location || 'No geographic location specified'}</span>
+                    </div>
+                    <span className="badge-type">{fac.type === 'SHOP' ? 'Retail Shop' : 'Warehouse'}</span>
+                  </div>
+                  <div className="card-body">
+                    {fac.inventory && fac.inventory.length > 0 ? (
+                      <table className="inventory-preview-table">
+                        <thead>
+                          <tr>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th style={{ textAlign: 'right' }}>Stock Level</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fac.inventory.map((item) => (
+                            <tr key={item.id}>
+                              <td>{item.name}</td>
+                              <td><code className="sku-code">{item.sku}</code></td>
+                              <td style={{ textAlign: 'right' }}>
+                                <span className={`badge-qty ${item.quantity < 10 ? 'low-stock-badge' : 'normal-stock-badge'}`}>
+                                  {item.quantity} units
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="no-inventory-text">⚠️ No active stock recorded in this facility.</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!searchLoading && searchQuery.trim() !== '' && searchResults.length === 0 && (
+          <p className="no-results-text">❌ No facilities found matching "{searchQuery}"</p>
+        )}
+      </div>
+
       <div className="manager-grid">
         {/* Creation Column */}
         <div className="creation-section">
@@ -581,6 +711,208 @@ const LocationManager = ({ onLocationAdded }) => {
           font-size: 12px;
           color: #94a3b8;
           font-style: italic;
+        }
+
+        /* Search Section Styling */
+        .facility-search-section {
+          background: var(--hw-panel-bg, #ffffff);
+          border: 1px solid var(--hw-border);
+          border-left: 4px solid var(--hw-orange);
+          border-radius: 6px;
+          padding: 20px;
+          margin-bottom: 30px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .facility-search-section h3 {
+          margin-top: 0;
+          border-bottom: 2px solid var(--hw-bg);
+          padding-bottom: 8px;
+          font-size: 14px;
+        }
+        .search-bar-container {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 15px;
+        }
+        .facility-search-input {
+          flex: 1;
+          padding: 10px 14px;
+          border: 1px solid var(--hw-border);
+          border-radius: 6px;
+          font-size: 14px;
+          color: var(--hw-slate-dark, #1e293b);
+          background-color: var(--hw-bg, #ffffff);
+          font-family: inherit;
+        }
+        .facility-search-input:focus {
+          outline: none;
+          border-color: var(--hw-orange);
+          box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+        }
+        .btn-search {
+          background-color: var(--hw-charcoal) !important;
+          color: white !important;
+          border: none;
+          padding: 10px 20px;
+          font-size: 13px;
+          font-weight: 700;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+          text-transform: uppercase;
+        }
+        .btn-search:hover {
+          background-color: var(--hw-steel) !important;
+        }
+        .btn-clear-search {
+          background-color: #94a3b8 !important;
+          color: white !important;
+          border: none;
+          padding: 10px 16px;
+          font-size: 13px;
+          font-weight: 700;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+          text-transform: uppercase;
+        }
+        .btn-clear-search:hover {
+          background-color: #64748b !important;
+        }
+        .search-loading-text {
+          font-size: 12px;
+          color: var(--hw-steel);
+          font-style: italic;
+          margin: 10px 0;
+        }
+        .no-results-text, .no-inventory-text {
+          font-size: 13px;
+          color: #ef4444;
+          font-style: italic;
+          margin: 10px 0;
+        }
+        .no-inventory-text {
+          color: #64748b;
+        }
+        
+        .search-results-container {
+          margin-top: 20px;
+          border-top: 1px dashed var(--hw-border);
+          padding-top: 15px;
+        }
+        .search-results-container h4 {
+          margin: 0 0 15px 0;
+          font-size: 12px;
+          text-transform: uppercase;
+          color: var(--hw-steel);
+          letter-spacing: 0.05em;
+        }
+        .search-results-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 20px;
+        }
+        .search-result-card {
+          background: var(--hw-bg);
+          border: 1px solid var(--hw-border);
+          border-radius: 6px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .search-result-card.shop-card {
+          border-top: 3px solid var(--hw-orange);
+        }
+        .search-result-card.wh-card {
+          border-top: 3px solid var(--hw-steel);
+        }
+        .search-result-card .card-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          background: var(--hw-panel-bg, #ffffff);
+          border-bottom: 1px solid var(--hw-border);
+        }
+        .card-icon {
+          font-size: 20px;
+        }
+        .card-header-details {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+        .card-header-details strong {
+          font-size: 14px;
+          color: var(--hw-charcoal);
+        }
+        .card-header-details span {
+          font-size: 11px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+        .badge-type {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          padding: 3px 6px;
+          border-radius: 4px;
+          background: #f1f5f9;
+          color: #475569;
+        }
+        .search-result-card.shop-card .badge-type {
+          background: #fff7ed;
+          color: var(--hw-orange-hover);
+        }
+        .search-result-card.wh-card .badge-type {
+          background: #f1f5f9;
+          color: var(--hw-steel);
+        }
+        .search-result-card .card-body {
+          padding: 12px;
+        }
+        .inventory-preview-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 12px;
+        }
+        .inventory-preview-table th {
+          text-align: left;
+          color: var(--hw-steel);
+          font-weight: 700;
+          text-transform: uppercase;
+          font-size: 10px;
+          padding-bottom: 6px;
+          border-bottom: 1px solid var(--hw-border);
+        }
+        .inventory-preview-table td {
+          padding: 6px 0;
+          border-bottom: 1px dashed rgba(226, 232, 240, 0.8);
+          color: var(--hw-slate-dark, #334155);
+        }
+        .inventory-preview-table tr:last-child td {
+          border-bottom: none;
+        }
+        .sku-code {
+          background: var(--hw-bg, #f1f5f9);
+          padding: 2px 4px;
+          border-radius: 4px;
+          font-family: monospace;
+          color: var(--hw-slate-dark, #0f172a);
+          border: 1px solid var(--hw-border);
+        }
+        .badge-qty {
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+        }
+        .low-stock-badge {
+          background: #fee2e2;
+          color: #b91c1c;
+        }
+        .normal-stock-badge {
+          background: #d1fae5;
+          color: #065f46;
         }
       `}</style>
     </div>
