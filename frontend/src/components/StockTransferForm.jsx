@@ -395,12 +395,12 @@ function StockTransferForm({ onTransferComplete }) {
         .transfer-form {
           display: flex;
           flex-direction: column;
-          gap: 15px;
+          gap: 12px;
         }
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 15px;
+          gap: 12px;
         }
         @media (max-width: 480px) {
           .form-grid {
@@ -411,13 +411,22 @@ function StockTransferForm({ onTransferComplete }) {
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 15px;
+          gap: 12px;
         }
         @media (max-width: 480px) {
           .form-row {
             grid-template-columns: 1fr;
             gap: 10px;
           }
+        }
+        .form-group select, .form-group input {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid var(--hw-border, #ccc);
+          border-radius: 4px;
+          background-color: var(--hw-panel-bg, #ffffff);
+          color: var(--hw-charcoal, #1e293b);
+          font-size: 13px;
         }
         .box-input-row {
           display: grid;
@@ -437,7 +446,7 @@ function StockTransferForm({ onTransferComplete }) {
         .form-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
           text-align: left;
         }
         .form-group label {
@@ -467,9 +476,9 @@ function StockTransferForm({ onTransferComplete }) {
         .stock-level-indicator {
           display: flex;
           justify-content: space-between;
-          padding: 8px 12px;
+          padding: 6px 12px;
           border-radius: 4px;
-          font-size: 12px;
+          font-size: 11px;
           border: 1px solid var(--hw-border);
         }
         .stock-level-indicator.in-stock {
@@ -484,7 +493,7 @@ function StockTransferForm({ onTransferComplete }) {
         .btn-transfer-submit {
           background-color: var(--hw-orange) !important;
           color: white !important;
-          padding: 11px !important;
+          padding: 9px !important;
           font-weight: 700 !important;
           text-transform: uppercase;
           border-radius: 4px !important;
