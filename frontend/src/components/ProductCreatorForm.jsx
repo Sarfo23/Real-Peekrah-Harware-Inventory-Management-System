@@ -65,7 +65,8 @@ const ProductCreatorForm = ({ onProductCreated }) => {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Product created and warehouse allocated successfully!' });
+        const successText = 'Product created and warehouse allocated successfully!';
+        setMessage({ type: 'success', text: successText });
         setName('');
         setSku('');
         setCategoryId('');
@@ -76,7 +77,7 @@ const ProductCreatorForm = ({ onProductCreated }) => {
         setCostPrice('');
         setSellingPrice('');
         loadMetadata();
-        if (onProductCreated) onProductCreated();
+        if (onProductCreated) onProductCreated(successText);
       } else {
         const errData = await response.json();
         throw new Error(errData.error || 'Failed to register product');

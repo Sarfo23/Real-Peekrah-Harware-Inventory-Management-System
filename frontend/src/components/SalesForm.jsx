@@ -173,11 +173,12 @@ const SalesForm = ({ onTransactionComplete }) => {
       if (window.HIMS_queueTransaction) {
         window.HIMS_queueTransaction('/api/inventory/move', payload, itemLabel);
         const recordedName = isCompetitorSourced ? formData.productName : selectedProduct.name;
+        const successText = `Offline Success: Sale queued in browser storage. Sold ${finalQuantity} units of ${recordedName} (GH₵ ${totalCost.toFixed(2)}). Will sync when online!`;
         setMessage({ 
-          text: `Offline Success: Sale queued in browser storage. Sold ${finalQuantity} units of ${recordedName} (GH₵ ${totalCost.toFixed(2)}). Will sync when online!`, 
+          text: successText, 
           type: 'success' 
         });
-        if (onTransactionComplete) onTransactionComplete();
+        if (onTransactionComplete) onTransactionComplete(successText);
         clearForm();
         setLoading(false);
         return;
@@ -196,8 +197,9 @@ const SalesForm = ({ onTransactionComplete }) => {
       if (response.ok) {
         const sourceMsg = isCompetitorSourced ? "Competitor Sourced" : "Standard Shop Stock";
         const recordedName = isCompetitorSourced ? formData.productName : selectedProduct.name;
-        setMessage({ text: `Success: Sale recorded successfully (${sourceMsg})! Sold ${finalQuantity} units of ${recordedName} for GH₵ ${totalCost.toFixed(2)}.`, type: 'success' });
-        if (onTransactionComplete) onTransactionComplete();
+        const successText = `Success: Sale recorded successfully (${sourceMsg})! Sold ${finalQuantity} units of ${recordedName} for GH₵ ${totalCost.toFixed(2)}.`;
+        setMessage({ text: successText, type: 'success' });
+        if (onTransactionComplete) onTransactionComplete(successText);
         clearForm();
       } else {
         throw new Error(result.error || 'Sale transaction failed');
@@ -212,11 +214,12 @@ const SalesForm = ({ onTransactionComplete }) => {
           
         window.HIMS_queueTransaction('/api/inventory/move', payload, itemLabel);
         const recordedName = isCompetitorSourced ? formData.productName : selectedProduct.name;
+        const successText = `Offline Success: Connection failed. Stored sale of ${finalQuantity} units of ${recordedName} in browser memory. Will auto-sync when online!`;
         setMessage({ 
-          text: `Offline Success: Connection failed. Stored sale of ${finalQuantity} units of ${recordedName} in browser memory. Will auto-sync when online!`, 
+          text: successText, 
           type: 'success' 
         });
-        if (onTransactionComplete) onTransactionComplete();
+        if (onTransactionComplete) onTransactionComplete(successText);
         clearForm();
       } else {
         setMessage({ text: `Error: ${err.message}`, type: 'error' });

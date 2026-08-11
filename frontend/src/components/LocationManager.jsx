@@ -131,11 +131,12 @@ const LocationManager = ({ onLocationAdded }) => {
       const data = await res.json();
 
       if (res.ok) {
-        setFormMessage({ type: 'success', text: `${locType === 'SHOP' ? 'Shop' : 'Warehouse'} registered successfully!` });
+        const successText = `${locType === 'SHOP' ? 'Shop' : 'Warehouse'} registered successfully!`;
+        setFormMessage({ type: 'success', text: successText });
         setName('');
         setLocation('');
         fetchLocations();
-        if (onLocationAdded) onLocationAdded();
+        if (onLocationAdded) onLocationAdded(successText);
       } else {
         throw new Error(data.error || 'Failed to create location');
       }
@@ -168,9 +169,10 @@ const LocationManager = ({ onLocationAdded }) => {
 
       const data = await res.json();
       if (res.ok) {
-        setEditMessage({ type: 'success', text: 'Facility updated successfully!' });
+        const successText = 'Facility updated successfully!';
+        setEditMessage({ type: 'success', text: successText });
         fetchLocations();
-        if (onLocationAdded) onLocationAdded();
+        if (onLocationAdded) onLocationAdded(successText);
         setTimeout(() => {
           setEditingFacility(null);
         }, 1000);
@@ -222,9 +224,10 @@ const LocationManager = ({ onLocationAdded }) => {
 
       const data = await res.json();
       if (res.ok) {
-        setEditMessage({ type: 'success', text: 'Facility deleted successfully!' });
+        const successText = 'Facility deleted successfully!';
+        setEditMessage({ type: 'success', text: successText });
         fetchLocations();
-        if (onLocationAdded) onLocationAdded();
+        if (onLocationAdded) onLocationAdded(successText);
         setTimeout(() => {
           setEditingFacility(null);
         }, 1000);

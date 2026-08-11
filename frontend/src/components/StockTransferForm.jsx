@@ -155,11 +155,12 @@ function StockTransferForm({ onTransferComplete }) {
       
       if (window.HIMS_queueTransaction) {
         window.HIMS_queueTransaction('/api/inventory/transfer', payload, itemLabel);
+        const successText = `Offline Success: Transfer queued locally. ${finalQuantity} units of ${prodName} stored. Will sync when online!`;
         setMessage({ 
           type: 'success', 
-          text: `Offline Success: Transfer queued locally. ${finalQuantity} units of ${prodName} stored. Will sync when online!` 
+          text: successText
         });
-        if (onTransferComplete) onTransferComplete();
+        if (onTransferComplete) onTransferComplete(successText);
         clearForm();
         setLoading(false);
         return;
@@ -176,9 +177,10 @@ function StockTransferForm({ onTransferComplete }) {
 
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: data.message || 'Stock transfer logged successfully.' });
+        const successText = data.message || 'Stock transfer logged successfully.';
+        setMessage({ type: 'success', text: successText });
         clearForm();
-        if (onTransferComplete) onTransferComplete();
+        if (onTransferComplete) onTransferComplete(successText);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to complete transfer.' });
       }
@@ -188,11 +190,12 @@ function StockTransferForm({ onTransferComplete }) {
       if (isNetworkError && window.HIMS_queueTransaction) {
         const itemLabel = `Transfer: ${finalQuantity} units of ${prodName}`;
         window.HIMS_queueTransaction('/api/inventory/transfer', payload, itemLabel);
+        const successText = `Offline Success: Connection failed. Queued transfer of ${finalQuantity} units of ${prodName} in browser memory. Will auto-sync when online!`;
         setMessage({ 
           type: 'success', 
-          text: `Offline Success: Connection failed. Queued transfer of ${finalQuantity} units of ${prodName} in browser memory. Will auto-sync when online!` 
+          text: successText 
         });
-        if (onTransferComplete) onTransferComplete();
+        if (onTransferComplete) onTransferComplete(successText);
         clearForm();
       } else {
         setMessage({ type: 'error', text: 'Network error. Please try again.' });

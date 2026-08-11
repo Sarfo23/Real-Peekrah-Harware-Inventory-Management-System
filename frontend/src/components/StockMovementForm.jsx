@@ -160,11 +160,12 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
       
       if (window.HIMS_queueTransaction) {
         window.HIMS_queueTransaction('/api/inventory/move', payload, itemLabel);
+        const successText = `Offline Success: Transaction stored in browser cache. ${formData.type} of ${finalQuantity} units of ${prodName} queued. Will sync when online!`;
         setMessage({ 
-          text: `Offline Success: Transaction stored in browser cache. ${formData.type} of ${finalQuantity} units of ${prodName} queued. Will sync when online!`, 
+          text: successText, 
           type: 'success' 
         });
-        if (onTransactionComplete) onTransactionComplete();
+        if (onTransactionComplete) onTransactionComplete(successText);
         clearForm();
         setLoading(false);
         return;
@@ -181,8 +182,9 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
       const result = await response.json();
 
       if (response.ok) {
-        setMessage({ text: `Success: ${result.message}`, type: 'success' });
-        if (onTransactionComplete) onTransactionComplete();
+        const successText = `Success: ${result.message}`;
+        setMessage({ text: successText, type: 'success' });
+        if (onTransactionComplete) onTransactionComplete(successText);
         clearForm();
       } else {
         throw new Error(result.error || 'Transaction failed');
@@ -193,11 +195,12 @@ const StockMovementForm = ({ onTransactionComplete, preselectedProductId }) => {
       if (isNetworkError && window.HIMS_queueTransaction) {
         const itemLabel = `Movement: ${formData.type} ${finalQuantity} units of ${prodName}`;
         window.HIMS_queueTransaction('/api/inventory/move', payload, itemLabel);
+        const successText = `Offline Success: Connection failed. Stored ${formData.type} movement of ${finalQuantity} units of ${prodName} in browser memory. Will auto-sync when online!`;
         setMessage({ 
-          text: `Offline Success: Connection failed. Stored ${formData.type} movement of ${finalQuantity} units of ${prodName} in browser memory. Will auto-sync when online!`, 
+          text: successText, 
           type: 'success' 
         });
-        if (onTransactionComplete) onTransactionComplete();
+        if (onTransactionComplete) onTransactionComplete(successText);
         clearForm();
       } else {
         setMessage({ text: `Error: ${err.message}`, type: 'error' });

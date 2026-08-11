@@ -48,6 +48,7 @@ window.fetch = async (url, options = {}) => {
  */
 function App() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [toast, setToast] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'movement'
   const [activeOpTab, setActiveOpTab] = useState('log'); // 'log' or 'register'
   const [lowStockCount, setLowStockCount] = useState(0);
@@ -376,8 +377,22 @@ function App() {
     setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
   };
 
-  const handleTransactionComplete = () => {
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    // Reset toast state to allow the same message to trigger animation again
+    setTimeout(() => {
+      setToast(prev => {
+        if (prev && prev.message === message) return null;
+        return prev;
+      });
+    }, 4500);
+  };
+
+  const handleTransactionComplete = (successMsg) => {
     setRefreshKey(prev => prev + 1);
+    if (successMsg && typeof successMsg === 'string') {
+      showToast(successMsg, 'success');
+    }
   };
 
   const navigateTo = (view) => {
@@ -414,6 +429,15 @@ function App() {
 
   return (
     <div className={`hardware-hims-app ${darkMode ? 'dark-theme' : ''}`}>
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div className={`global-toast-notification ${toast.type}`}>
+          <span className="toast-icon">{toast.type === 'success' ? '✅' : '⚠️'}</span>
+          <span className="toast-message">{toast.message}</span>
+          <button className="toast-close" onClick={() => setToast(null)}>&times;</button>
+        </div>
+      )}
+
       {/* Heavy-Duty Industrial Top Bar */}
       <header className="hardware-nav">
         <div className="hardware-nav-container">
@@ -2498,6 +2522,87 @@ function App() {
           
           .decom-option-card {
             padding: 12px !important;
+          }
+        }
+        .global-toast-notification {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 20px;
+          border-radius: 6px;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          font-size: 13px;
+          font-weight: 600;
+          animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.5s ease-out 4s forwards;
+          max-width: 450px;
+        }
+        .global-toast-notification.success {
+          background-color: #d1fae5;
+          color: #065f46;
+          border-left: 5px solid #10b981;
+          border-top: 1px solid #a7f3d0;
+          border-right: 1px solid #a7f3d0;
+          border-bottom: 1px solid #a7f3d0;
+        }
+        .global-toast-notification.error {
+          background-color: #fee2e2;
+          color: #991b1b;
+          border-left: 5px solid #ef4444;
+          border-top: 1px solid #fca5a5;
+          border-right: 1px solid #fca5a5;
+          border-bottom: 1px solid #fca5a5;
+        }
+        .toast-icon {
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        .toast-message {
+          flex-grow: 1;
+          line-height: 1.4;
+        }
+        .toast-close {
+          background: transparent !important;
+          border: none !important;
+          font-size: 18px !important;
+          line-height: 1 !important;
+          color: currentColor !important;
+          cursor: pointer;
+          padding: 0 0 0 8px !important;
+          opacity: 0.7;
+          transition: opacity 0.15s;
+        }
+        .toast-close:hover {
+          opacity: 1;
+        }
+        @keyframes slideInRight {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+            visibility: hidden;
+          }
+        }
+        @media (max-width: 480px) {
+          .global-toast-notification {
+            top: 12px;
+            right: 12px;
+            left: 12px;
+            max-width: none;
           }
         }
       `}</style>

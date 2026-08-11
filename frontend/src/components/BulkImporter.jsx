@@ -197,13 +197,14 @@ const BulkImporter = ({ onImportComplete }) => {
       result = await response.json();
 
       if (response.ok) {
-        setMessage({ text: `Success: ${result.message}`, type: 'success' });
+        const successText = `Success: ${result.message}`;
+        setMessage({ text: successText, type: 'success' });
         setPreviewData([]);
         setFile(null);
         // Clear input element
         const fileInput = document.getElementById('bulk-file-input');
         if (fileInput) fileInput.value = '';
-        if (onImportComplete) onImportComplete();
+        if (onImportComplete) onImportComplete(successText);
       } else {
         throw new Error(result.error || 'Import failed');
       }

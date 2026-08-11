@@ -49,11 +49,12 @@ const CategoryManager = ({ onCategoryAdded }) => {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Category created successfully!' });
+        const successText = 'Category created successfully!';
+        setMessage({ type: 'success', text: successText });
         setName('');
         setParentId('');
         fetchCategories();
-        if (onCategoryAdded) onCategoryAdded();
+        if (onCategoryAdded) onCategoryAdded(successText);
       } else {
         const errData = await response.json();
         throw new Error(errData.error || 'Failed to create category');
@@ -80,9 +81,10 @@ const CategoryManager = ({ onCategoryAdded }) => {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `Category "${catName}" deleted successfully.` });
+        const successText = `Category "${catName}" deleted successfully.`;
+        setMessage({ type: 'success', text: successText });
         fetchCategories();
-        if (onCategoryAdded) onCategoryAdded();
+        if (onCategoryAdded) onCategoryAdded(successText);
       } else {
         const errData = await response.json();
         throw new Error(errData.error || 'Failed to delete category');
