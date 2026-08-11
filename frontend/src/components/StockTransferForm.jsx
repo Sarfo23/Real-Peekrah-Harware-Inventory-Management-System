@@ -203,6 +203,8 @@ function StockTransferForm({ onTransferComplete }) {
   };
 
   const selectedProduct = products.find(p => Number(p.id) === Number(formData.productId));
+  const selectedSource = warehouses.find(w => Number(w.id) === Number(formData.fromWarehouseId));
+  const selectedDest = warehouses.find(w => Number(w.id) === Number(formData.toWarehouseId));
 
   return (
     <div className="transfer-form-container">
@@ -292,7 +294,7 @@ function StockTransferForm({ onTransferComplete }) {
               <option value="">-- Select Source --</option>
               {warehouses.map(w => (
                 <option key={w.id} value={w.id}>
-                  {w.name} ({w.type === 'SHOP' ? 'Shop' : 'Warehouse'})
+                  {w.name} ({w.type === 'SHOP' ? 'Shop' : 'Warehouse'}){w.location ? ` - ${w.location}` : ''}
                 </option>
               ))}
             </select>
@@ -309,12 +311,55 @@ function StockTransferForm({ onTransferComplete }) {
               <option value="">-- Select Destination --</option>
               {warehouses.map(w => (
                 <option key={w.id} value={w.id}>
-                  {w.name} ({w.type === 'SHOP' ? 'Shop' : 'Warehouse'})
+                  {w.name} ({w.type === 'SHOP' ? 'Shop' : 'Warehouse'}){w.location ? ` - ${w.location}` : ''}
                 </option>
               ))}
             </select>
           </div>
         </div>
+
+        {(selectedSource || selectedDest) && (
+          <div className="transfer-route-preview">
+            <div className="route-node source-node">
+              <div className="node-badge source-badge">SOURCE</div>
+              {selectedSource ? (
+                <div className="node-content">
+                  <div className="node-name">{selectedSource.name}</div>
+                  <div className="node-type-badge">
+                    {selectedSource.type === 'SHOP' ? '🏪 Shop' : '🏢 Warehouse'}
+                  </div>
+                  <div className="node-location" title={selectedSource.location}>
+                    <span className="location-icon">📍</span> {selectedSource.location || <em className="no-loc">No Location Specified</em>}
+                  </div>
+                </div>
+              ) : (
+                <div className="node-placeholder">Select a source warehouse...</div>
+              )}
+            </div>
+
+            <div className="route-connector">
+              <div className="connector-line"></div>
+              <div className="connector-arrow">➔</div>
+            </div>
+
+            <div className="route-node dest-node">
+              <div className="node-badge dest-badge">DESTINATION</div>
+              {selectedDest ? (
+                <div className="node-content">
+                  <div className="node-name">{selectedDest.name}</div>
+                  <div className="node-type-badge">
+                    {selectedDest.type === 'SHOP' ? '🏪 Shop' : '🏢 Warehouse'}
+                  </div>
+                  <div className="node-location" title={selectedDest.location}>
+                    <span className="location-icon">📍</span> {selectedDest.location || <em className="no-loc">No Location Specified</em>}
+                  </div>
+                </div>
+              ) : (
+                <div className="node-placeholder">Select a destination...</div>
+              )}
+            </div>
+          </div>
+        )}
 
         {sourceStock !== null && (
           <div className={`stock-level-indicator ${sourceStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
@@ -659,6 +704,162 @@ function StockTransferForm({ onTransferComplete }) {
           color: var(--hw-steel, #64748b);
           font-size: 13px;
           font-style: italic;
+        }
+        .transfer-route-preview {
+          display: flex;
+          align-items: stretch;
+          justify-content: space-between;
+          background: linear-gradient(135deg, var(--hw-bg-light, #f8fafc), #ffffff);
+          border: 1px solid var(--hw-border, #cbd5e1);
+          border-radius: 8px;
+          padding: 16px;
+          margin-top: 4px;
+          margin-bottom: 8px;
+          gap: 12px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+          position: relative;
+          overflow: hidden;
+        }
+        .transfer-route-preview::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: var(--hw-orange, #f97316);
+          opacity: 0.8;
+        }
+        .route-node {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 4px 8px;
+          z-index: 1;
+        }
+        .node-badge {
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          padding: 2px 6px;
+          border-radius: 4px;
+          width: max-content;
+          text-transform: uppercase;
+        }
+        .source-badge {
+          background-color: rgba(249, 115, 22, 0.1);
+          color: var(--hw-orange, #f97316);
+        }
+        .dest-badge {
+          background-color: rgba(30, 41, 59, 0.1);
+          color: var(--hw-charcoal, #1e293b);
+        }
+        .node-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .node-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--hw-charcoal, #1e293b);
+          word-break: break-word;
+        }
+        .node-type-badge {
+          font-size: 11px;
+          color: var(--hw-steel, #64748b);
+          font-weight: 500;
+        }
+        .node-location {
+          font-size: 12px;
+          color: var(--hw-charcoal, #334155);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          word-break: break-word;
+        }
+        .location-icon {
+          flex-shrink: 0;
+        }
+        .no-loc {
+          font-style: italic;
+          color: var(--hw-steel, #94a3b8);
+        }
+        .node-placeholder {
+          font-size: 12px;
+          color: var(--hw-steel, #94a3b8);
+          font-style: italic;
+          margin-top: 8px;
+        }
+        .route-connector {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          position: relative;
+          padding: 0 8px;
+          min-width: 40px;
+        }
+        .connector-line {
+          width: 100%;
+          height: 2px;
+          background-color: var(--hw-border, #cbd5e1);
+          position: relative;
+        }
+        .connector-arrow {
+          position: absolute;
+          font-size: 16px;
+          color: var(--hw-orange, #f97316);
+          animation: pulseArrow 1.5s infinite ease-in-out;
+        }
+        @keyframes pulseArrow {
+          0% {
+            transform: translateX(-4px);
+            opacity: 0.6;
+          }
+          50% {
+            transform: translateX(4px);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(-4px);
+            opacity: 0.6;
+          }
+        }
+        @media (max-width: 480px) {
+          .transfer-route-preview {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .route-connector {
+            width: 100%;
+            height: 24px;
+            min-width: auto;
+            flex-direction: row;
+          }
+          .connector-line {
+            width: 2px;
+            height: 100%;
+          }
+          .connector-arrow {
+            transform: rotate(90deg);
+            animation: pulseArrowDown 1.5s infinite ease-in-out;
+          }
+        }
+        @keyframes pulseArrowDown {
+          0% {
+            transform: rotate(90deg) translateX(-4px);
+            opacity: 0.6;
+          }
+          50% {
+            transform: rotate(90deg) translateX(4px);
+            opacity: 1;
+          }
+          100% {
+            transform: rotate(90deg) translateX(-4px);
+            opacity: 0.6;
+          }
         }
       `}</style>
     </div>
