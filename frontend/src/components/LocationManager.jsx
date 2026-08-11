@@ -181,8 +181,12 @@ const LocationManager = ({ onLocationAdded }) => {
     }
   };
 
-  const handleDeleteFacility = async () => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${editingFacility.name}"? This action cannot be undone.`)) {
+  const handleDeleteFacility = async (forcePurge = false) => {
+    const confirmMessage = forcePurge 
+      ? `🚨 WARNING: You are about to permanently delete "${editingFacility.name}" AND all of its transaction history (audit trails). This action CANNOT be undone. Are you absolutely sure?`
+      : `Are you sure you want to permanently delete "${editingFacility.name}"? This action cannot be undone.`;
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -191,7 +195,8 @@ const LocationManager = ({ onLocationAdded }) => {
 
     try {
       const token = localStorage.getItem('hims_token');
-      const res = await fetch(`/api/warehouses/${editingFacility.id}`, {
+      const url = `/api/warehouses/${editingFacility.id}${forcePurge ? '?purgeHistory=true' : ''}`;
+      const res = await fetch(url, {
         method: 'DELETE',
         headers: { 
           'Authorization': `Bearer ${token}`
@@ -207,6 +212,19 @@ const LocationManager = ({ onLocationAdded }) => {
           setEditingFacility(null);
         }, 1000);
       } else {
+        if (data.code === 'HAS_TRANSACTIONS' || (data.error && data.error.includes('transaction history'))) {
+          setEditLoading(false);
+          const purgeConfirm = window.confirm(
+            `This facility has associated transaction history (audit trails).\n\n` +
+            `Do you want to PERMANENTLY DELETE all associated transaction history/audit trails and delete the facility?\n\n` +
+            `• Click OK to delete everything (facility & all transaction logs).\n` +
+            `• Click Cancel to keep the facility and its audit trails intact.`
+          );
+          if (purgeConfirm) {
+            handleDeleteFacility(true);
+          }
+          return;
+        }
         throw new Error(data.error || 'Failed to delete facility');
       }
     } catch (err) {

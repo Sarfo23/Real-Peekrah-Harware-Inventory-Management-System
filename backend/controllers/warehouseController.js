@@ -118,6 +118,7 @@ const updateFacility = async (req, res) => {
 
 const deleteFacility = async (req, res) => {
   const { id } = req.params;
+  const purgeHistory = req.query.purgeHistory === 'true';
 
   try {
     // 1. Check if the facility exists
@@ -144,9 +145,14 @@ const deleteFacility = async (req, res) => {
       [id]
     );
     if (txRows[0].txCount > 0) {
-      return res.status(400).json({
-        error: 'Cannot delete facility because it has associated transaction history. It cannot be deleted to preserve audit trails.'
-      });
+      if (!purgeHistory) {
+        return res.status(400).json({
+          code: 'HAS_TRANSACTIONS',
+          error: 'Cannot delete facility because it has associated transaction history. It cannot be deleted to preserve audit trails.'
+        });
+      }
+      // Delete the transactions associated with the facility to preserve integrity
+      await db.execute('DELETE FROM transactions WHERE warehouse_id = ?', [id]);
     }
 
     // 4. Delete zero-quantity inventory mappings to avoid constraint conflicts, then delete warehouse
@@ -157,7 +163,7 @@ const deleteFacility = async (req, res) => {
     await logFootprint(
       req.user ? req.user.id : 1,
       'DELETE_FACILITY',
-      `Permanently deleted facility: "${name}" (Type: ${type}, ID: ${id}).`
+      `Permanently deleted facility: "${name}" (Type: ${type}, ID: ${id}).${purgeHistory ? ' Also purged associated transaction logs.' : ''}`
     );
 
     res.json({ message: 'Facility deleted successfully.' });
