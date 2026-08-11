@@ -33,6 +33,9 @@ const LocationManager = ({ onLocationAdded }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  // Custom Delete Confirm Modal State
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
   const refreshSearchResults = async (query, currentWarehouses, currentShops) => {
     const q = query.toLowerCase();
     const allFacs = [
@@ -181,15 +184,29 @@ const LocationManager = ({ onLocationAdded }) => {
     }
   };
 
-  const handleDeleteFacility = async (forcePurge = false) => {
-    const confirmMessage = forcePurge 
-      ? `🚨 WARNING: You are about to permanently delete "${editingFacility.name}" AND all of its transaction history (audit trails). This action CANNOT be undone. Are you absolutely sure?`
-      : `Are you sure you want to permanently delete "${editingFacility.name}"? This action cannot be undone.`;
+  const handleDeleteFacility = (forcePurge = false) => {
+    const isForce = forcePurge === true;
 
-    if (!window.confirm(confirmMessage)) {
-      return;
+    if (!isForce) {
+      setDeleteConfirm({
+        title: 'Confirm Facility Deletion',
+        message: `Are you sure you want to permanently delete "${editingFacility.name}"?\nThis action cannot be undone.`,
+        confirmLabel: 'Yes, Delete',
+        cancelLabel: 'Cancel',
+        onConfirm: () => performDelete(false)
+      });
+    } else {
+      setDeleteConfirm({
+        title: '🚨 CRITICAL WARNING',
+        message: `WARNING: You are about to permanently delete "${editingFacility.name}" AND all of its transaction history (audit trails).\n\nThis action CANNOT be undone.\n\nAre you absolutely sure you want to proceed?`,
+        confirmLabel: 'Yes, Purge & Delete',
+        cancelLabel: 'Cancel',
+        onConfirm: () => performDelete(true)
+      });
     }
+  };
 
+  const performDelete = async (forcePurge) => {
     setEditLoading(true);
     setEditMessage(null);
 
@@ -214,15 +231,13 @@ const LocationManager = ({ onLocationAdded }) => {
       } else {
         if (data.code === 'HAS_TRANSACTIONS' || (data.error && data.error.includes('transaction history'))) {
           setEditLoading(false);
-          const purgeConfirm = window.confirm(
-            `This facility has associated transaction history (audit trails).\n\n` +
-            `Do you want to PERMANENTLY DELETE all associated transaction history/audit trails and delete the facility?\n\n` +
-            `• Click OK to delete everything (facility & all transaction logs).\n` +
-            `• Click Cancel to keep the facility and its audit trails intact.`
-          );
-          if (purgeConfirm) {
-            handleDeleteFacility(true);
-          }
+          setDeleteConfirm({
+            title: 'Audit Trail Warning',
+            message: `This facility has associated transaction history (audit trails).\n\nDo you want to PERMANENTLY DELETE all associated transaction history/audit trails and delete the facility?\n\n• OK: Deletes everything (facility & all transaction logs).\n• Cancel: Keeps the facility and its audit trails.`,
+            confirmLabel: 'Yes, Delete Everything',
+            cancelLabel: 'Cancel',
+            onConfirm: () => handleDeleteFacility(true)
+          });
           return;
         }
         throw new Error(data.error || 'Failed to delete facility');
@@ -503,6 +518,46 @@ const LocationManager = ({ onLocationAdded }) => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal Overlay */}
+      {deleteConfirm && (
+        <div className="modal-backdrop confirm-modal-backdrop">
+          <div className="modal-container confirm-modal-container" style={{ maxWidth: '400px' }}>
+            <div className="modal-header confirm-modal-header">
+              <h3>{deleteConfirm.title}</h3>
+              <button 
+                className="modal-close-btn" 
+                onClick={() => setDeleteConfirm(null)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="confirm-modal-body" style={{ padding: '24px 20px', backgroundColor: '#ffffff', color: 'var(--hw-charcoal, #1e293b)' }}>
+              <div className="confirm-modal-icon">⚠️</div>
+              <p className="confirm-modal-text">{deleteConfirm.message}</p>
+              
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+                <button 
+                  type="button" 
+                  className="btn-submit" 
+                  style={{ backgroundColor: '#94a3b8', color: 'white', padding: '8px 16px', fontSize: '13px', margin: 0 }} 
+                  onClick={() => setDeleteConfirm(null)}
+                >
+                  {deleteConfirm.cancelLabel || 'Cancel'}
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-submit btn-delete-facility" 
+                  style={{ padding: '8px 16px', fontSize: '13px', margin: 0 }}
+                  onClick={() => deleteConfirm.onConfirm()}
+                >
+                  {deleteConfirm.confirmLabel || 'Delete'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -931,6 +986,49 @@ const LocationManager = ({ onLocationAdded }) => {
         .normal-stock-badge {
           background: #d1fae5;
           color: #065f46;
+        }
+        .confirm-modal-container {
+          border-top: 4px solid var(--hw-red, #ef4444) !important;
+          animation: modalFadeIn 0.2s ease-out;
+        }
+        .confirm-modal-header {
+          background-color: #7f1d1d !important;
+        }
+        .confirm-modal-body {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .confirm-modal-icon {
+          font-size: 40px;
+          margin-bottom: 12px;
+          animation: pulseIcon 1.5s infinite ease-in-out;
+        }
+        .confirm-modal-text {
+          font-size: 14px;
+          line-height: 1.6;
+          color: var(--hw-charcoal, #334155);
+          margin: 0;
+          white-space: pre-line;
+        }
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        @keyframes pulseIcon {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.1);
+          }
         }
       `}</style>
     </div>
