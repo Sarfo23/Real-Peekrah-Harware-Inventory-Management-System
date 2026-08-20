@@ -143,8 +143,6 @@ const BulkImporter = ({ onImportComplete }) => {
           const rowNum = index + 2;
           if (importType === 'products') {
             if (!item.name) localErrors.push(`Row ${rowNum}: Product Name is missing.`);
-            if (!item.sku) localErrors.push(`Row ${rowNum}: UMO (Pieces or Boxes) is missing.`);
-            if (!item.categoryName) localErrors.push(`Row ${rowNum}: Category Name is missing.`);
             if (item.quantity < 0) {
               localErrors.push(`Row ${rowNum}: Quantity cannot be negative.`);
             }

@@ -323,6 +323,7 @@ const bulkCreateProducts = async (req, res) => {
 
   const connection = await db.getConnection();
   let createdCount = 0;
+  let updatedCount = 0;
   let skippedCount = 0;
   const errors = [];
 
@@ -343,8 +344,8 @@ const bulkCreateProducts = async (req, res) => {
       const lowStockThresholdVal = parseInt(item.lowStockThreshold) || 10;
       const quantityVal = parseInt(item.quantity) || 0;
 
-      if (!nameVal || !skuVal || !categoryNameVal) {
-        errors.push(`Row ${rowNum}: Name, SKU, and Category Name are required.`);
+      if (!nameVal) {
+        errors.push(`Row ${rowNum}: Product Name is required.`);
         skippedCount++;
         continue;
       }
@@ -358,9 +359,21 @@ const bulkCreateProducts = async (req, res) => {
       );
 
       if (existing.length > 0) {
-        // Product already exists, we will use it to assign stock details!
+        // Product already exists, update its cost price and selling price, and reuse the ID
         productId = existing[0].id;
+        await connection.execute(
+          'UPDATE products SET cost_price = ?, selling_price = ? WHERE id = ?',
+          [costPriceVal, sellingPriceVal, productId]
+        );
+        updatedCount++;
       } else {
+        // Since it's a new product, we require SKU/UMO and Category Name
+        if (!skuVal || !categoryNameVal) {
+          errors.push(`Row ${rowNum}: SKU/UMO and Category Name are required to register new product "${nameVal}".`);
+          skippedCount++;
+          continue;
+        }
+
         // Get or create category
         let categoryId = null;
         const [catRows] = await connection.execute(
@@ -467,12 +480,13 @@ const bulkCreateProducts = async (req, res) => {
     await logFootprint(
       req.user ? req.user.id : 1,
       'BULK_CREATE_PRODUCTS',
-      `Created ${createdCount} products via spreadsheet bulk import (skipped ${skippedCount}).`
+      `Created ${createdCount} products and updated ${updatedCount} products via spreadsheet bulk import (skipped ${skippedCount}).`
     );
 
     res.status(200).json({
-      message: `Bulk creation completed. Created: ${createdCount}, Skipped/Failed: ${skippedCount}`,
+      message: `Bulk creation completed. Created: ${createdCount}, Updated: ${updatedCount}, Skipped/Failed: ${skippedCount}`,
       createdCount,
+      updatedCount,
       skippedCount,
       details: errors
     });
