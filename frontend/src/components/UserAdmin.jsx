@@ -725,6 +725,9 @@ const UserAdmin = () => {
           flex-direction: column;
           gap: 20px;
           animation: fadeIn 0.2s ease-out;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
         .sub-tabs-header {
@@ -835,6 +838,9 @@ const UserAdmin = () => {
           border: 1px solid var(--hw-border);
           border-radius: 6px;
           padding: 20px;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
         @media (max-width: 768px) {
