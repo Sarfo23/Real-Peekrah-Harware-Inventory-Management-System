@@ -796,14 +796,8 @@ const UserAdmin = () => {
 
         .user-admin-grid {
           display: grid;
-          grid-template-columns: 1fr 1.5fr;
+          grid-template-columns: 1fr;
           gap: 25px;
-        }
-
-        @media (max-width: 900px) {
-          .user-admin-grid {
-            grid-template-columns: 1fr;
-          }
         }
 
         .status-banner {

@@ -169,8 +169,7 @@ const CategoryManager = ({ onCategoryAdded }) => {
 
       <style jsx>{`
         .category-manager-container { padding: 0; background: transparent; }
-        .category-form { display: grid; grid-template-columns: 1fr 1fr 180px; gap: 15px; align-items: flex-end; margin-bottom: 20px; }
-        @media (max-width: 768px) { .category-form { grid-template-columns: 1fr; } }
+        .category-form { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--hw-steel); letter-spacing: 0.02em; }
         .form-group input, .form-group select { padding: 8px 10px; border: 1px solid var(--hw-border); background-color: var(--hw-panel-bg); color: var(--hw-slate-dark); border-radius: 4px; font-size: 13px; outline: none; }
