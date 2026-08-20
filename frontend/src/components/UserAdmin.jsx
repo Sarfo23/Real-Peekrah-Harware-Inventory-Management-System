@@ -1097,6 +1097,8 @@ const UserAdmin = () => {
         .logs-table-container {
           max-height: 480px;
           overflow-y: auto;
+          overflow-x: auto;
+          width: 100%;
         }
 
         .logs-table th {

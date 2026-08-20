@@ -2011,6 +2011,10 @@ function App() {
           align-items: start;
         }
 
+        .movement-col-right {
+          min-width: 0;
+        }
+
 
 
         @media (max-width: 1200px) {
@@ -2037,6 +2041,7 @@ function App() {
           display: flex;
           flex-direction: column;
           height: 100%;
+          min-width: 0;
         }
 
         .operation-tabs-header {
